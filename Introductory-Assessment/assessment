@@ -1,0 +1,205 @@
+Which best describes DevOps as a methodology?
+A) A method that uses cloud tools to reduce human error in infrastructure setups
+B) A set of practices that aligns software delivery with operational goals through
+collaboration and automation
+C) A role-based approach where developers and operators split deployment
+responsibility
+
+R: B
+
+
+
+Q2: Which of the following is most aligned with DevOps maturity?
+A) Development and operations teams use the same tools but maintain separate
+workflows
+B) Code and infrastructure changes follow integrated, testable, and monitored
+pipelines
+C) Release processes are handed over to operations once developers merge code
+to main
+
+
+
+R: B
+
+
+
+Q3: Your friend created his revolutionary concert ticket application in Python
+with FastApi and React Frontend. He wants to also apply devops principles to
+his application. He calls you and asks you for instructions. What would you
+suggest him to do?
+
+
+R: - Integrate testing pipelines for the backend/frontend apps
+   - enable versioning and release methodology
+   - check the production hosting
+
+
+Q4: In AWS, IAM is primarily responsible for which function?
+A) Controlling access to services and resources through policies applied to users,
+roles, and groups
+B) Enabling resource-level encryption and regional compliance
+C) Managing inter-service communication within private subnets
+
+R: A
+
+
+Q5: Why is least privilege a foundational principle in access control design?
+A) It simplifies role definitions by pre-authorizing most standard actions
+B) It ensures that users only access services through VPC endpoints
+C) It reduces risk exposure by restricting access strictly to what’s required for a
+role
+
+R: C
+
+
+Q6: Your friend wants to move his revolutionary concert ticket application to the
+Cloud, using cloud native elements. You see he has a fastapi application, a
+database and a static frontend. What resources would you suggest him to use?
+And how would he bind them together?
+
+
+R: EC2 instance for the backend, S3 for the static FE, DynamoDB for the DB
+
+
+Q7: What is the most sustainable advantage of scripting in DevOps workflows?
+A) Repeatable task automation independent of interactive commands
+B) Shorter development times for CI/CD pipelines
+C) Real-time orchestration of cloud resources via UI-less tooling
+
+R: A
+
+Q8: In secure and portable scripts, why are environment variables preferred for
+configuration?
+A) They allow persistent local values to be reused across invocations
+B) They eliminate the need for argument parsing in Bash
+C) They externalize sensitive or changing values to avoid hardcoding into logic 
+
+R: A
+
+Q9: Think about a certain repetitive action in your daily life. How would you
+optimise it using automation? Explain briefly.
+
+Sending "Good morning messages" to my friends group, I will do a github cron action in order to execute it daily at a certain time. I can keep my secrets in github env, to keep my meta accounts keys. From a bash script I will curl to the Whatsapp API the chat group and the message.
+
+Q10: What key challenge does Infrastructure as Code address?
+A) Visibility into third-party infrastructure providers
+B) Eliminating configuration drift caused by manual provisioning
+C) Reducing container image sizes in cloud-native pipelines
+
+
+R: B
+
+Q11: Why is remote state essential in a multi-user Terraform workflow?
+A) It reduces the number of concurrent backend API calls during apply
+B) It maintains a centralized infrastructure view to prevent drift and parallel
+overwrite
+C) It automatically generates policies to enforce tagging standards
+
+Q12: What does 'terraform init' command do and why do you run it before
+applying the configuration?
+
+R: reads from backend, installs modules, setting the lock file
+
+Q13: What are the three main components of a terraform resource block that
+need to be defined and what does each one do?
+
+resource - what resource to provison (service account)
+
+module - more resources in one place/ multiple params
+
+locals/variable - params to be consumed and set
+	
+output - check output params
+
+data - fetch from remote
+
+Q14: Which statement best captures the essence of serverless computing?
+A) Application code runs in managed environments where infrastructure concerns
+are abstracted
+B) Containers are auto-scheduled based on incoming traffic
+C) Code executes directly on physical machines without virtualization overhead
+	
+
+R: A
+
+Q15: Why might teams prefer using the Serverless Framework?
+A) It supports all IaC languages without external tooling
+B) It automatically provisions cross-region networking
+C) It provides a simplified interface for defining and deploying function-based
+services
+
+R: C
+
+
+Q16: Your friend with the revolutionary ticket system idea wants to go
+serverless. How would you advise him to do so?
+
+To split the monolith app into small functions in order to design it in distributed pices. 
+
+
+Q17: Why are containers valuable in modern application delivery?
+A) They enable shared memory across deployment nodes
+B) They remove the need for orchestration tools
+C) They standardize runtime environments across development and production
+
+R: C
+
+Q18: In Kubernetes, why is declarative configuration significant?
+A) It guarantees instant updates to services on every YAML change
+B) It allows infrastructure to be reverse-generated from cluster state
+C) It defines the desired state, allowing the system to self-correct discrepancies
+
+R: B
+
+
+Q19: What does it mean to "containerize" an application, and how can using
+containers help when building microservices? Also, briefly explain what
+Kubernetes is.
+
+The containerization process means that the application processes are segregated on multiple user spaces, running on the same kernel space. Kuberentes is a pod manager and container orchestrator, keeping all the depoyment objects into a one place: Deployment, Configmap, VirtualService, etc. Kube is taking care of all the running objects inside a cluster, working as a system scheduler. (e.g. CronJobs, Daemons, etc).
+
+
+Q20: What is one of the main benefits of Continuous Integration?
+A) Early detection of integration errors through frequent testing of merged
+changes
+B) Fully automated rollback of infrastructure on failed builds
+C) Container-level security validation before pull request review
+
+R: B
+
+Q21: Why should infrastructure deployment be tied to application pipelines?
+A) To prevent configuration duplication across projects
+B) To ensure application and infrastructure changes move through environments
+together, reducing mismatch risks
+C) To simplify user onboarding through shared context definitions
+
+R: B
+
+
+Q22: What pipelines would you recommend to your friend with the
+revolutionary ticket system application? How would those pipelines benefit his
+operations?
+
+R: A pipeline for build, test reports, cron job env check, deploy across development envs, code analaysis
+
+Q23: What is the primary goal of observability in DevOps?
+A) Storing metrics for cost forecasting
+B) Gaining insight into internal system behavior to support faster debugging and
+recovery
+C) Automating health checks across all staging environment
+
+R: B
+
+Q24: What is a benefit of integrating tools like PagerDuty with system
+monitoring?
+A) Coordinated on-call scheduling and structured response escalation
+B) Automatic Lambda retries for failed alert functions
+C) Centralized dashboard creation using AI-driven telemetry
+
+R: A ( p.s. I do not what PagerDuty is doing )
+
+
+Q25: Why is it helpful to set up basic monitoring for your applications, and what
+is one example of something you might monitor?
+
+By monitoring you can find a lot of issues. Such as: application healthiness, network traffic, application restarts, auto-scaling issues, network load, deployment issues (volume is not mounting properly) 
