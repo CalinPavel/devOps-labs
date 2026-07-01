@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues: [t3.micro, t3.small, t3.medium]
+    Description: EC2 type
+
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: CIDR
+
+  PrivateSubnetCidr:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: CIDR
+
+  PrivateSubnetCidrB:
+    Type: String
+    Default: 10.0.2.0/24
+    Description: CIDR
+
+   
+
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: false
+      EnableDnsHostnames: false
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-vpc"
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref PrivateSubnetCidr
+      AvailabilityZone: eu-west-3a
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub "subnet-A"
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref PrivateSubnetCidrB
+      AvailabilityZone: eu-west-3b
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub "subnet-B"
+
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SSH - allow
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref VpcCidr
+          Description: SSH din EICE
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-instance-sg"
+
+  Eice:
+    Type: AWS::EC2::InstanceConnectEndpoint
+    Properties:
+      SubnetId: !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref InstanceSecurityGroup
+      PreserveClientIp: false
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-eice"
+
+  InstanceA:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref LatestAmiId
+      SubnetId: !Ref PrivateSubnet
+      KeyName: !Ref KeyPair
+      SecurityGroupIds:
+        - !Ref InstanceSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "Node-A"
+
+  InstanceB:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref LatestAmiId
+      SubnetId: !Ref PrivateSubnetB
+      KeyName: !Ref KeyPair
+      SecurityGroupIds:
+        - !Ref InstanceSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "Node-B"
+  
+  KeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: !Sub "${AWS::StackName}-key"
+      KeyType: ed25519
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-key"
+
+Outputs:
+  InstanceId:
+    Description: Instance
+    Value: !Ref InstanceA
+
+  InstancePrivateIp:
+    Description: IP 
+    Value: !GetAtt InstanceA.PrivateIp
+
+  EiceId:
+    Description: ID EC2 Instance Connect Endpoint
+    Value: !Ref Eice
+
+  ConnectCommand:
+    Description: Access instance
+    Value: !Sub "aws ec2-instance-connect ssh --instance-id ${InstanceA} --os-user ec2-user --region ${AWS::Region}"
