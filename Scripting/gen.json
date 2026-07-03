@@ -1,0 +1,184 @@
+{
+  "countries": [
+    {
+      "PutRequest": {
+        "Item": {
+          "nume": {
+            "S": "Sint Maarten (Dutch part)"
+          },
+          "cod": {
+            "S": "SX"
+          },
+          "cod3": {
+            "S": "SXM"
+          },
+          "numeric": {
+            "S": "534"
+          }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "nume": {
+            "S": "Saint Vincent and the Grenadines"
+          },
+          "cod": {
+            "S": "VC"
+          },
+          "cod3": {
+            "S": "VCT"
+          },
+          "numeric": {
+            "S": "670"
+          }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "nume": {
+            "S": "Western Sahara"
+          },
+          "cod": {
+            "S": "EH"
+          },
+          "cod3": {
+            "S": "ESH"
+          },
+          "numeric": {
+            "S": "732"
+          }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "nume": {
+            "S": "French Guiana"
+          },
+          "cod": {
+            "S": "GF"
+          },
+          "cod3": {
+            "S": "GUF"
+          },
+          "numeric": {
+            "S": "254"
+          }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "nume": {
+            "S": "Saint Kitts and Nevis"
+          },
+          "cod": {
+            "S": "KN"
+          },
+          "cod3": {
+            "S": "KNA"
+          },
+          "numeric": {
+            "S": "659"
+          }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "nume": {
+            "S": "India"
+          },
+          "cod": {
+            "S": "IN"
+          },
+          "cod3": {
+            "S": "IND"
+          },
+          "numeric": {
+            "S": "356"
+          }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "nume": {
+            "S": "Zimbabwe"
+          },
+          "cod": {
+            "S": "ZW"
+          },
+          "cod3": {
+            "S": "ZWE"
+          },
+          "numeric": {
+            "S": "716"
+          }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "nume": {
+            "S": "Sudan"
+          },
+          "cod": {
+            "S": "SD"
+          },
+          "cod3": {
+            "S": "SDN"
+          },
+          "numeric": {
+            "S": "729"
+          }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "nume": {
+            "S": "Northern Mariana Islands"
+          },
+          "cod": {
+            "S": "MP"
+          },
+          "cod3": {
+            "S": "MNP"
+          },
+          "numeric": {
+            "S": "580"
+          }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "nume": {
+            "S": "Guinea-Bissau"
+          },
+          "cod": {
+            "S": "GW"
+          },
+          "cod3": {
+            "S": "GNB"
+          },
+          "numeric": {
+            "S": "624"
+          }
+        }
+      }
+    }
+  ]
+}
