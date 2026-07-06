@@ -1,4 +1,4 @@
-# 🕵️ h4ck3r Shell — AWS Lambda Lab
+#Shell — AWS Lambda Lab
 
 A hacker-themed interactive Python REPL that talks to AWS Lambda functions backed by DynamoDB. Built as a hands-on lab to learn how Lambda functions are **created**, **invoked**, and **exposed as public API endpoints**.
 
