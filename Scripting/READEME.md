@@ -86,3 +86,59 @@ make teardown
 - The asynchronous nature of AWS resource lifecycle and how CLI *waiters* solve it
 - Composing multi-step cloud workflows with Make composite targets
 - Bridging tooling gaps with small Python scripts
+
+## Demo
+
+```bash
+
+
+pavelcalin@E1712586 ~/Desktop/devOps-labs/Scripting % make create_table
+aws dynamodb create-table \
+		--table-name countries \
+		--attribute-definitions AttributeName=cod,AttributeType=S \
+		--key-schema AttributeName=cod,KeyType=HASH \
+		--billing-mode PAY_PER_REQUEST \
+		--region eu-west-3
+{
+    "TableDescription": {
+        "AttributeDefinitions": [
+            {
+                "AttributeName": "cod",
+                "AttributeType": "S"
+            }
+        ],
+        "TableName": "countries",
+        "KeySchema": [
+            {
+                "AttributeName": "cod",
+                "KeyType": "HASH"
+            }
+        ],
+        "TableStatus": "CREATING",
+        "CreationDateTime": "2026-07-06T10:37:51.551000+03:00",
+        "ProvisionedThroughput": {
+            "NumberOfDecreasesToday": 0,
+            "ReadCapacityUnits": 0,
+            "WriteCapacityUnits": 0
+        },
+        "TableSizeBytes": 0,
+        "ItemCount": 0,
+        "TableArn": "arn:aws:dynamodb:eu-west-3:368287211169:table/countries",
+        "TableId": "486b8a7f-d5ed-4c37-a596-8379beb76112",
+        "BillingModeSummary": {
+            "BillingMode": "PAY_PER_REQUEST"
+        },
+        "DeletionProtectionEnabled": false
+    }
+}
+pavelcalin@E1712586 ~/Desktop/devOps-labs/Scripting % make push_data
+aws dynamodb batch-write-item --request-items \
+  file://gen.json  \
+  --region eu-west-3
+{
+    "UnprocessedItems": {}
+}
+pavelcalin@E1712586 ~/Desktop/devOps-labs/Scripting % 
+
+```
+
