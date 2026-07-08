@@ -8,9 +8,20 @@ stages:
       tableName: "users-table-${sls:stage}"
 
 provider:
+  endpointType: PRIVATE
   name: aws
   runtime: python3.12
   region: eu-west-3
+
+  apiGateway:
+  resourcePolicy:
+    - Effect: Allow
+      Principal: "*"
+      Action: execute-api:Invoke
+      Resource: execute-api:/*
+      Condition:
+        StringEquals:
+          aws:SourceVpce: !Ref ExecuteApiEndpoint
 
   iam:
     role:
@@ -48,6 +59,10 @@ functions:
         - !Ref InstanceSecurityGroup
       subnetIds:
         - !Ref PrivateSubnetA
+    events:
+      - http:
+          path: /tasks
+          method: post
 
 resources:
   Parameters:
@@ -154,3 +169,15 @@ resources:
             FromPort: 443
             ToPort: 443
             SourceSecurityGroupId: !Ref InstanceSecurityGroup
+
+    ExecuteApiEndpoint:
+      Type: AWS::EC2::VPCEndpoint
+      Properties:
+        VpcId: !Ref Vpc
+        ServiceName: !Sub "com.amazonaws.${AWS::Region}.execute-api"
+        VpcEndpointType: Interface
+        PrivateDnsEnabled: true
+        SubnetIds:
+          - !Ref PrivateSubnetA
+        SecurityGroupIds:
+          - !Ref EndpointSecurityGroup
