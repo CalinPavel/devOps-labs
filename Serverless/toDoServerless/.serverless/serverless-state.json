@@ -1,0 +1,574 @@
+{
+  "service": {
+    "service": "toDoList",
+    "serviceObject": {
+      "name": "toDoList"
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "python3.12",
+      "region": "eu-west-3",
+      "iam": {
+        "role": {
+          "statements": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:GetItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem"
+              ],
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "UsersTable",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "sqs:SendMessage"
+              ],
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "MyQueue",
+                    "Arn"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "environment": {
+        "USERS_TABLE": "users-table-staging"
+      },
+      "stage": "staging",
+      "versionFunctions": true,
+      "compiledCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "ProducerLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/staging-Producer"
+            }
+          },
+          "IamRoleLambdaExecution": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": [
+                        "lambda.amazonaws.com"
+                      ]
+                    },
+                    "Action": [
+                      "sts:AssumeRole"
+                    ]
+                  }
+                ]
+              },
+              "Policies": [
+                {
+                  "PolicyName": {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "toDoList",
+                        "staging",
+                        "lambda"
+                      ]
+                    ]
+                  },
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream",
+                          "logs:CreateLogGroup",
+                          "logs:TagResource"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-Producer:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-Producer:*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "$ref": "$[\"service\"][\"provider\"][\"iam\"][\"role\"][\"statements\"][0]"
+                      },
+                      {
+                        "$ref": "$[\"service\"][\"provider\"][\"iam\"][\"role\"][\"statements\"][1]"
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "xray:PutTraceSegments",
+                          "xray:PutTelemetryRecords"
+                        ],
+                        "Resource": [
+                          "*"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              "Path": "/",
+              "RoleName": {
+                "Fn::Join": [
+                  "-",
+                  [
+                    "toDoList",
+                    "staging",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    "lambdaRole"
+                  ]
+                ]
+              },
+              "ManagedPolicyArns": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+                    ]
+                  ]
+                }
+              ]
+            }
+          },
+          "ProducerLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
+                "S3Key": "serverless/toDoList/staging/1783511730090-2026-07-08T11:55:30.090Z/toDoList.zip"
+              },
+              "Handler": "producer.handler",
+              "Runtime": "python3.11",
+              "FunctionName": "staging-Producer",
+              "MemorySize": 512,
+              "Timeout": 10,
+              "Description": "Push in queue",
+              "TracingConfig": {
+                "Mode": "PassThrough"
+              },
+              "Environment": {
+                "Variables": {
+                  "USERS_TABLE": "users-table-staging"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              },
+              "VpcConfig": {
+                "SecurityGroupIds": [
+                  {
+                    "Ref": "InstanceSecurityGroup"
+                  }
+                ],
+                "SubnetIds": [
+                  {
+                    "Ref": "PrivateSubnetA"
+                  }
+                ]
+              }
+            },
+            "DependsOn": [
+              "ProducerLogGroup"
+            ]
+          },
+          "ProducerLambdaVersionFyaRb4e7xhBy7RigwQmMP9VEudx6ARrVr7H5A3VLo": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "ProducerLambdaFunction"
+              },
+              "CodeSha256": "784zhoawaN9IMp5be/TGjALi75pCvLWxTtcrB2ALz/0=",
+              "Description": "Push in queue"
+            }
+          },
+          "InstanceSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+              "GroupDescription": "SSH - allow",
+              "VpcId": {
+                "Ref": "Vpc"
+              },
+              "SecurityGroupIngress": [
+                {
+                  "IpProtocol": "tcp",
+                  "FromPort": 22,
+                  "ToPort": 22,
+                  "CidrIp": {
+                    "Ref": "VpcCidr"
+                  },
+                  "Description": "SSH din EICE"
+                }
+              ],
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "${AWS::StackName}-instance-sg"
+                  }
+                }
+              ]
+            }
+          },
+          "Vpc": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+              "CidrBlock": {
+                "Ref": "VpcCidr"
+              },
+              "EnableDnsSupport": true,
+              "EnableDnsHostnames": true,
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "${AWS::StackName}-vpc"
+                  }
+                }
+              ]
+            }
+          },
+          "PrivateSubnetA": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+              "VpcId": {
+                "Ref": "Vpc"
+              },
+              "CidrBlock": {
+                "Ref": "PrivateSubnetCidr"
+              },
+              "AvailabilityZone": "eu-west-3a",
+              "MapPublicIpOnLaunch": false,
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "subnet-A"
+                  }
+                }
+              ]
+            }
+          },
+          "PrivateSubnetB": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+              "VpcId": {
+                "Ref": "Vpc"
+              },
+              "CidrBlock": {
+                "Ref": "PrivateSubnetCidrB"
+              },
+              "AvailabilityZone": "eu-west-3b",
+              "MapPublicIpOnLaunch": false,
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "subnet-B"
+                  }
+                }
+              ]
+            }
+          },
+          "MyQueue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+              "QueueName": "todolist-queue-staging",
+              "VisibilityTimeout": 30
+            }
+          },
+          "UsersTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "userId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "userId",
+                  "KeyType": "HASH"
+                }
+              ],
+              "ProvisionedThroughput": {
+                "ReadCapacityUnits": 1,
+                "WriteCapacityUnits": 1
+              },
+              "TableName": "users-table-staging"
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
+            "Export": {
+              "Name": "sls-toDoList-staging-ServerlessDeploymentBucketName"
+            }
+          },
+          "ProducerLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "ProducerLambdaVersionFyaRb4e7xhBy7RigwQmMP9VEudx6ARrVr7H5A3VLo"
+            },
+            "Export": {
+              "Name": "sls-toDoList-staging-ProducerLambdaFunctionQualifiedArn"
+            }
+          }
+        },
+        "Parameters": {
+          "VpcCidr": {
+            "Type": "String",
+            "Default": "10.0.0.0/16"
+          },
+          "PrivateSubnetCidr": {
+            "Type": "String",
+            "Default": "10.0.1.0/24"
+          },
+          "PrivateSubnetCidrB": {
+            "Type": "String",
+            "Default": "10.0.2.0/24"
+          }
+        }
+      },
+      "vpc": {}
+    },
+    "pluginsData": {},
+    "functions": {
+      "producer": {
+        "handler": "producer.handler",
+        "name": "staging-Producer",
+        "description": "Push in queue",
+        "runtime": "python3.11",
+        "memorySize": 512,
+        "timeout": 10,
+        "tracing": "PassThrough",
+        "vpc": {
+          "securityGroupIds": {
+            "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"ProducerLambdaFunction\"][\"Properties\"][\"VpcConfig\"][\"SecurityGroupIds\"]"
+          },
+          "subnetIds": {
+            "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"ProducerLambdaFunction\"][\"Properties\"][\"VpcConfig\"][\"SubnetIds\"]"
+          }
+        },
+        "events": [],
+        "package": {},
+        "memory": 512,
+        "versionLogicalId": "ProducerLambdaVersionFyaRb4e7xhBy7RigwQmMP9VEudx6ARrVr7H5A3VLo"
+      }
+    },
+    "resources": {
+      "Parameters": {
+        "VpcCidr": {
+          "Type": "String",
+          "Default": "10.0.0.0/16"
+        },
+        "PrivateSubnetCidr": {
+          "Type": "String",
+          "Default": "10.0.1.0/24"
+        },
+        "PrivateSubnetCidrB": {
+          "Type": "String",
+          "Default": "10.0.2.0/24"
+        }
+      },
+      "Resources": {
+        "InstanceSecurityGroup": {
+          "Type": "AWS::EC2::SecurityGroup",
+          "Properties": {
+            "GroupDescription": "SSH - allow",
+            "VpcId": {
+              "Ref": "Vpc"
+            },
+            "SecurityGroupIngress": [
+              {
+                "IpProtocol": "tcp",
+                "FromPort": 22,
+                "ToPort": 22,
+                "CidrIp": {
+                  "Ref": "VpcCidr"
+                },
+                "Description": "SSH din EICE"
+              }
+            ],
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": {
+                  "Fn::Sub": "${AWS::StackName}-instance-sg"
+                }
+              }
+            ]
+          }
+        },
+        "Vpc": {
+          "Type": "AWS::EC2::VPC",
+          "Properties": {
+            "CidrBlock": {
+              "Ref": "VpcCidr"
+            },
+            "EnableDnsSupport": true,
+            "EnableDnsHostnames": true,
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": {
+                  "Fn::Sub": "${AWS::StackName}-vpc"
+                }
+              }
+            ]
+          }
+        },
+        "PrivateSubnetA": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "VpcId": {
+              "Ref": "Vpc"
+            },
+            "CidrBlock": {
+              "Ref": "PrivateSubnetCidr"
+            },
+            "AvailabilityZone": "eu-west-3a",
+            "MapPublicIpOnLaunch": false,
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": {
+                  "Fn::Sub": "subnet-A"
+                }
+              }
+            ]
+          }
+        },
+        "PrivateSubnetB": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "VpcId": {
+              "Ref": "Vpc"
+            },
+            "CidrBlock": {
+              "Ref": "PrivateSubnetCidrB"
+            },
+            "AvailabilityZone": "eu-west-3b",
+            "MapPublicIpOnLaunch": false,
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": {
+                  "Fn::Sub": "subnet-B"
+                }
+              }
+            ]
+          }
+        },
+        "MyQueue": {
+          "Type": "AWS::SQS::Queue",
+          "Properties": {
+            "QueueName": "todolist-queue-staging",
+            "VisibilityTimeout": 30
+          }
+        },
+        "UsersTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "userId",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "userId",
+                "KeyType": "HASH"
+              }
+            ],
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": 1,
+              "WriteCapacityUnits": 1
+            },
+            "TableName": "users-table-staging"
+          }
+        }
+      },
+      "Outputs": {}
+    },
+    "configValidationMode": "warn",
+    "serviceFilename": "serverless",
+    "initialServerlessConfig": {
+      "org": "orgpavca",
+      "app": "todolist",
+      "service": "toDoList",
+      "stages": {
+        "default": {
+          "params": {
+            "tableName": "users-table-staging"
+          }
+        }
+      },
+      "provider": {
+        "$ref": "$[\"service\"][\"provider\"]"
+      },
+      "functions": {
+        "$ref": "$[\"service\"][\"functions\"]"
+      },
+      "resources": {
+        "$ref": "$[\"service\"][\"resources\"]"
+      }
+    },
+    "app": "todolist",
+    "appId": null,
+    "org": "orgpavca",
+    "orgId": null,
+    "layers": {},
+    "artifact": "/Users/pavelcalin/Desktop/devOps-labs/Serverless/toDoServerless/.serverless/toDoList.zip"
+  },
+  "package": {
+    "artifactDirectoryName": "serverless/toDoList/staging/1783511730090-2026-07-08T11:55:30.090Z",
+    "artifact": "toDoList.zip"
+  }
+}

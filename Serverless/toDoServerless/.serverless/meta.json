@@ -1,0 +1,325 @@
+{
+  "/Users/pavelcalin/Desktop/devOps-labs/Serverless/toDoServerless/serverless.yml": {
+    "versionFramework": "4.38.1",
+    "servicePath": "/Users/pavelcalin/Desktop/devOps-labs/Serverless/toDoServerless/serverless.yml",
+    "serviceConfigFileName": "serverless.yml",
+    "service": {
+      "org": "orgpavca",
+      "app": "todolist",
+      "service": "toDoList",
+      "stages": {
+        "default": {
+          "params": {
+            "tableName": "users-table-staging"
+          }
+        }
+      },
+      "provider": {
+        "name": "aws",
+        "runtime": "python3.12",
+        "region": "eu-west-3",
+        "iam": {
+          "role": {
+            "statements": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "dynamodb:Query",
+                  "dynamodb:Scan",
+                  "dynamodb:GetItem",
+                  "dynamodb:PutItem",
+                  "dynamodb:UpdateItem",
+                  "dynamodb:DeleteItem"
+                ],
+                "Resource": [
+                  {
+                    "Fn::GetAtt": [
+                      "UsersTable",
+                      "Arn"
+                    ]
+                  }
+                ]
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "sqs:SendMessage"
+                ],
+                "Resource": [
+                  {
+                    "Fn::GetAtt": [
+                      "MyQueue",
+                      "Arn"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "environment": {
+          "USERS_TABLE": "users-table-staging"
+        },
+        "stage": "staging",
+        "versionFunctions": true
+      },
+      "functions": {
+        "producer": {
+          "handler": "producer.handler",
+          "name": "staging-Producer",
+          "description": "Push in queue",
+          "runtime": "python3.11",
+          "memorySize": 512,
+          "timeout": 10,
+          "tracing": "PassThrough",
+          "vpc": {
+            "securityGroupIds": [
+              {
+                "Ref": "InstanceSecurityGroup"
+              }
+            ],
+            "subnetIds": [
+              {
+                "Ref": "PrivateSubnetA"
+              }
+            ]
+          },
+          "events": []
+        }
+      },
+      "resources": {
+        "Parameters": {
+          "VpcCidr": {
+            "Type": "String",
+            "Default": "10.0.0.0/16"
+          },
+          "PrivateSubnetCidr": {
+            "Type": "String",
+            "Default": "10.0.1.0/24"
+          },
+          "PrivateSubnetCidrB": {
+            "Type": "String",
+            "Default": "10.0.2.0/24"
+          }
+        },
+        "Resources": {
+          "InstanceSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+              "GroupDescription": "SSH - allow",
+              "VpcId": {
+                "Ref": "Vpc"
+              },
+              "SecurityGroupIngress": [
+                {
+                  "IpProtocol": "tcp",
+                  "FromPort": 22,
+                  "ToPort": 22,
+                  "CidrIp": {
+                    "Ref": "VpcCidr"
+                  },
+                  "Description": "SSH din EICE"
+                }
+              ],
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "${AWS::StackName}-instance-sg"
+                  }
+                }
+              ]
+            }
+          },
+          "Vpc": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+              "CidrBlock": {
+                "Ref": "VpcCidr"
+              },
+              "EnableDnsSupport": true,
+              "EnableDnsHostnames": true,
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "${AWS::StackName}-vpc"
+                  }
+                }
+              ]
+            }
+          },
+          "PrivateSubnetA": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+              "VpcId": {
+                "Ref": "Vpc"
+              },
+              "CidrBlock": {
+                "Ref": "PrivateSubnetCidr"
+              },
+              "AvailabilityZone": "eu-west-3a",
+              "MapPublicIpOnLaunch": false,
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "subnet-A"
+                  }
+                }
+              ]
+            }
+          },
+          "PrivateSubnetB": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+              "VpcId": {
+                "Ref": "Vpc"
+              },
+              "CidrBlock": {
+                "Ref": "PrivateSubnetCidrB"
+              },
+              "AvailabilityZone": "eu-west-3b",
+              "MapPublicIpOnLaunch": false,
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "subnet-B"
+                  }
+                }
+              ]
+            }
+          },
+          "MyQueue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+              "QueueName": "todolist-queue-staging",
+              "VisibilityTimeout": 30
+            }
+          },
+          "UsersTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "userId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "userId",
+                  "KeyType": "HASH"
+                }
+              ],
+              "ProvisionedThroughput": {
+                "ReadCapacityUnits": 1,
+                "WriteCapacityUnits": 1
+              },
+              "TableName": "users-table-staging"
+            }
+          }
+        }
+      }
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "python3.12",
+      "region": "eu-west-3",
+      "iam": {
+        "role": {
+          "statements": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:GetItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem"
+              ],
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "UsersTable",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "sqs:SendMessage"
+              ],
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "MyQueue",
+                    "Arn"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "environment": {
+        "USERS_TABLE": "users-table-staging"
+      },
+      "stage": "staging",
+      "versionFunctions": true
+    },
+    "dashboard": {
+      "isEnabledForService": true,
+      "requiredAuthentication": false,
+      "orgFeaturesInUse": {
+        "providers": false,
+        "monitoring": false
+      },
+      "orgObservabilityIntegrations": null,
+      "serviceAppId": "DzRvj8qqKB4TT9qzrk",
+      "serviceProvider": null,
+      "instanceParameters": null
+    },
+    "error": {
+      "message": "Invoked function failed",
+      "stack": "ServerlessError2: Invoked function failed\n    at AwsInvoke.log (file:///Users/pavelcalin/.serverless/releases/4.38.1/package/dist/sf-core.js:1789:480)\n    at invoke:invoke (file:///Users/pavelcalin/.serverless/releases/4.38.1/package/dist/sf-core.js:1788:638)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async PluginManager.runHooks (file:///Users/pavelcalin/.serverless/releases/4.38.1/package/dist/sf-core.js:2344:11241)\n    at async PluginManager.invoke (file:///Users/pavelcalin/.serverless/releases/4.38.1/package/dist/sf-core.js:2344:12010)\n    at async PluginManager.run (file:///Users/pavelcalin/.serverless/releases/4.38.1/package/dist/sf-core.js:2344:12707)\n    at async Serverless.run (file:///Users/pavelcalin/.serverless/releases/4.38.1/package/dist/sf-core.js:2396:10552)\n    at async runFramework (file:///Users/pavelcalin/.serverless/releases/4.38.1/package/dist/sf-core.js:2423:1781)\n    at async TraditionalRunner.run (file:///Users/pavelcalin/.serverless/releases/4.38.1/package/dist/sf-core.js:2419:26785)\n    at async route (file:///Users/pavelcalin/.serverless/releases/4.38.1/package/dist/sf-core.js:2590:2888)",
+      "code": "AWS_LAMBDA_INVOCATION_FAILED"
+    },
+    "serviceRawFile": "org: orgpavca\napp: todolist\nservice: toDoList\n\nstages:\n  default:\n    params:\n      tableName: \"users-table-${sls:stage}\"\n\nprovider:\n  name: aws\n  runtime: python3.12\n  region: eu-west-3\n\n  iam:\n    role:\n      statements:\n        - Effect: Allow\n          Action:\n            - dynamodb:Query\n            - dynamodb:Scan\n            - dynamodb:GetItem\n            - dynamodb:PutItem\n            - dynamodb:UpdateItem\n            - dynamodb:DeleteItem\n          Resource:\n            - Fn::GetAtt: [UsersTable, Arn]\n        - Effect: Allow\n          Action:\n            - sqs:SendMessage\n          Resource:\n            - Fn::GetAtt: [MyQueue, Arn]\n  environment:\n    USERS_TABLE: ${param:tableName}\n\nfunctions:\n  producer:\n    handler: producer.handler # required, handler set in AWS Lambda\n    name: ${sls:stage}-Producer # optional, Deployed Lambda name\n    description: Push in queue\n    runtime: python3.11 # optional overwrite, default is provider runtime\n    memorySize: 512 # optional, in MB, default is 1024\n    timeout: 10 # optional, in seconds, default is 6\n    tracing: PassThrough # optional, overwrite, can be 'Active' or 'PassThrough'\n    vpc:\n      securityGroupIds:\n        - !Ref InstanceSecurityGroup\n      subnetIds:\n        - !Ref PrivateSubnetA\n\nresources:\n  Parameters:\n    VpcCidr:\n      Type: String\n      Default: 10.0.0.0/16\n    PrivateSubnetCidr:\n      Type: String\n      Default: 10.0.1.0/24\n    PrivateSubnetCidrB:\n      Type: String\n      Default: 10.0.2.0/24\n\n\n  Resources:\n\n    InstanceSecurityGroup:\n      Type: AWS::EC2::SecurityGroup\n      Properties:\n        GroupDescription: SSH - allow\n        VpcId: !Ref Vpc\n        SecurityGroupIngress:\n          - IpProtocol: tcp\n            FromPort: 22\n            ToPort: 22\n            CidrIp: !Ref VpcCidr\n            Description: SSH din EICE\n        Tags:\n          - Key: Name\n            Value: !Sub \"${AWS::StackName}-instance-sg\"\n\n    Vpc:\n      Type: AWS::EC2::VPC\n      Properties:\n        CidrBlock: !Ref VpcCidr\n        EnableDnsSupport: true\n        EnableDnsHostnames: true\n        Tags:\n          - Key: Name\n            Value: !Sub \"${AWS::StackName}-vpc\"\n\n    PrivateSubnetA:\n      Type: AWS::EC2::Subnet\n      Properties:\n        VpcId: !Ref Vpc\n        CidrBlock: !Ref PrivateSubnetCidr\n        AvailabilityZone: eu-west-3a\n        MapPublicIpOnLaunch: false\n        Tags:\n          - Key: Name\n            Value: !Sub \"subnet-A\"\n\n    PrivateSubnetB:\n      Type: AWS::EC2::Subnet\n      Properties:\n        VpcId: !Ref Vpc\n        CidrBlock: !Ref PrivateSubnetCidrB\n        AvailabilityZone: eu-west-3b\n        MapPublicIpOnLaunch: false\n        Tags:\n          - Key: Name\n            Value: !Sub \"subnet-B\"\n\n    MyQueue:\n      Type: AWS::SQS::Queue\n      Properties:\n        QueueName: todolist-queue-${sls:stage}\n        VisibilityTimeout: 30\n\n\n    UsersTable:\n      Type: AWS::DynamoDB::Table\n      Properties:\n        AttributeDefinitions:\n          - AttributeName: userId\n            AttributeType: S\n        KeySchema:\n          - AttributeName: userId\n            KeyType: HASH\n        ProvisionedThroughput:\n          ReadCapacityUnits: 1\n          WriteCapacityUnits: 1\n        TableName: ${param:tableName}\n",
+    "command": [
+      "invoke"
+    ],
+    "options": {
+      "function": "producer",
+      "stage": "staging",
+      "data": "{\"task\": \"test\"}"
+    },
+    "orgId": "3fcd18a9-039d-4466-a06b-3c2e555da94a",
+    "orgName": "orgpavca",
+    "userId": "JtzXMQLTYRVLNx1BbJ",
+    "userName": "orgpavca",
+    "serviceProviderAwsAccountId": "368287211169",
+    "serviceProviderAwsCfStackName": "toDoList-staging",
+    "serviceProviderAwsCfStackId": "arn:aws:cloudformation:eu-west-3:368287211169:stack/toDoList-staging/ec6f8920-7ac3-11f1-bc86-06b0d08a28bb",
+    "serviceProviderAwsCfStackCreated": "2026-07-08T11:55:32.988Z",
+    "serviceProviderAwsCfStackUpdated": null,
+    "serviceProviderAwsCfStackStatus": "CREATE_COMPLETE",
+    "serviceProviderAwsCfStackOutputs": [
+      {
+        "OutputKey": "ProducerLambdaFunctionQualifiedArn",
+        "OutputValue": "arn:aws:lambda:eu-west-3:368287211169:function:staging-Producer:1",
+        "Description": "Current Lambda function version",
+        "ExportName": "sls-toDoList-staging-ProducerLambdaFunctionQualifiedArn"
+      },
+      {
+        "OutputKey": "ServerlessDeploymentBucketName",
+        "OutputValue": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
+        "ExportName": "sls-toDoList-staging-ServerlessDeploymentBucketName"
+      }
+    ]
+  }
+}

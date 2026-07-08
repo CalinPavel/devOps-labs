@@ -1,0 +1,695 @@
+{
+  "service": {
+    "service": "toDoList",
+    "serviceObject": {
+      "name": "toDoList"
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "python3.12",
+      "region": "eu-west-3",
+      "iam": {
+        "role": {
+          "statements": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:GetItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem"
+              ],
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "UsersTable",
+                    "Arn"
+                  ]
+                }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "sqs:SendMessage"
+              ],
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "MyQueue",
+                    "Arn"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "environment": {
+        "USERS_TABLE": "users-table-staging"
+      },
+      "stage": "staging",
+      "versionFunctions": true,
+      "compiledCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "ApiLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/toDoList-staging-api"
+            }
+          },
+          "IamRoleLambdaExecution": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": [
+                        "lambda.amazonaws.com"
+                      ]
+                    },
+                    "Action": [
+                      "sts:AssumeRole"
+                    ]
+                  }
+                ]
+              },
+              "Policies": [
+                {
+                  "PolicyName": {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "toDoList",
+                        "staging",
+                        "lambda"
+                      ]
+                    ]
+                  },
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream",
+                          "logs:CreateLogGroup",
+                          "logs:TagResource"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/toDoList-staging*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/toDoList-staging*:*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "$ref": "$[\"service\"][\"provider\"][\"iam\"][\"role\"][\"statements\"][0]"
+                      },
+                      {
+                        "$ref": "$[\"service\"][\"provider\"][\"iam\"][\"role\"][\"statements\"][1]"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "Path": "/",
+              "RoleName": {
+                "Fn::Join": [
+                  "-",
+                  [
+                    "toDoList",
+                    "staging",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    "lambdaRole"
+                  ]
+                ]
+              }
+            }
+          },
+          "ApiLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
+                "S3Key": "serverless/toDoList/staging/1783494642650-2026-07-08T07:10:42.650Z/toDoList.zip"
+              },
+              "Handler": "wsgi_handler.handler",
+              "Runtime": "python3.12",
+              "FunctionName": "toDoList-staging-api",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "USERS_TABLE": "users-table-staging"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "ApiLogGroup"
+            ]
+          },
+          "ApiLambdaVersionKTRrvIUBcuCWqQnQX9qYFvphEoqbRywfM804sQePs": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "ApiLambdaFunction"
+              },
+              "CodeSha256": "VcfljsaS/R1q2AbA0Yf0sbVlc8cd1SO7YRbDADXC4lg="
+            }
+          },
+          "ApiGatewayRestApi": {
+            "Type": "AWS::ApiGateway::RestApi",
+            "Properties": {
+              "Name": "staging-toDoList",
+              "EndpointConfiguration": {
+                "Types": [
+                  "EDGE"
+                ]
+              },
+              "Policy": ""
+            }
+          },
+          "ApiGatewayResourceProxyVar": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "{proxy+}",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodAny": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "ANY",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "ApiLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "ApiLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodProxyVarAny": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "ANY",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceProxyVar"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "ApiLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "ApiLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayDeployment1783494637499": {
+            "Type": "AWS::ApiGateway::Deployment",
+            "Properties": {
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "StageName": "staging"
+            },
+            "DependsOn": [
+              "ApiGatewayMethodAny",
+              "ApiGatewayMethodProxyVarAny"
+            ]
+          },
+          "ApiLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "ApiLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "Vpc": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+              "CidrBlock": {
+                "Ref": "VpcCidr"
+              },
+              "EnableDnsSupport": false,
+              "EnableDnsHostnames": false,
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "${AWS::StackName}-vpc"
+                  }
+                }
+              ]
+            }
+          },
+          "PrivateSubnet": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+              "VpcId": {
+                "Ref": "Vpc"
+              },
+              "CidrBlock": {
+                "Ref": "PrivateSubnetCidr"
+              },
+              "AvailabilityZone": "eu-west-3a",
+              "MapPublicIpOnLaunch": false,
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "subnet-A"
+                  }
+                }
+              ]
+            }
+          },
+          "PrivateSubnetB": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+              "VpcId": {
+                "Ref": "Vpc"
+              },
+              "CidrBlock": {
+                "Ref": "PrivateSubnetCidrB"
+              },
+              "AvailabilityZone": "eu-west-3b",
+              "MapPublicIpOnLaunch": false,
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "subnet-B"
+                  }
+                }
+              ]
+            }
+          },
+          "MyQueue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+              "QueueName": "todolist-queue-staging",
+              "VisibilityTimeout": 30
+            }
+          },
+          "UsersTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "userId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "userId",
+                  "KeyType": "HASH"
+                }
+              ],
+              "ProvisionedThroughput": {
+                "ReadCapacityUnits": 1,
+                "WriteCapacityUnits": 1
+              },
+              "TableName": "users-table-staging"
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
+            "Export": {
+              "Name": "sls-toDoList-staging-ServerlessDeploymentBucketName"
+            }
+          },
+          "ApiLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "ApiLambdaVersionKTRrvIUBcuCWqQnQX9qYFvphEoqbRywfM804sQePs"
+            },
+            "Export": {
+              "Name": "sls-toDoList-staging-ApiLambdaFunctionQualifiedArn"
+            }
+          },
+          "ServiceEndpoint": {
+            "Description": "URL of the service endpoint",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  "https://",
+                  {
+                    "Ref": "ApiGatewayRestApi"
+                  },
+                  ".execute-api.",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ".",
+                  {
+                    "Ref": "AWS::URLSuffix"
+                  },
+                  "/staging"
+                ]
+              ]
+            },
+            "Export": {
+              "Name": "sls-toDoList-staging-ServiceEndpoint"
+            }
+          }
+        },
+        "Parameters": {
+          "VpcCidr": {
+            "Type": "String",
+            "Default": "10.0.0.0/16"
+          },
+          "PrivateSubnetCidr": {
+            "Type": "String",
+            "Default": "10.0.1.0/24"
+          },
+          "PrivateSubnetCidrB": {
+            "Type": "String",
+            "Default": "10.0.2.0/24"
+          }
+        }
+      },
+      "vpc": {}
+    },
+    "custom": {
+      "wsgi": {
+        "app": "app.app"
+      }
+    },
+    "plugins": [
+      "serverless-wsgi",
+      "serverless-python-requirements"
+    ],
+    "pluginsData": {},
+    "functions": {
+      "api": {
+        "handler": "wsgi_handler.handler",
+        "events": [
+          {
+            "http": {
+              "path": "",
+              "method": "any",
+              "integration": "AWS_PROXY"
+            }
+          },
+          {
+            "http": {
+              "path": "{proxy+}",
+              "method": "any",
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "toDoList-staging-api",
+        "package": {},
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "python3.12",
+        "vpc": {},
+        "versionLogicalId": "ApiLambdaVersionKTRrvIUBcuCWqQnQX9qYFvphEoqbRywfM804sQePs"
+      }
+    },
+    "resources": {
+      "Parameters": {
+        "VpcCidr": {
+          "Type": "String",
+          "Default": "10.0.0.0/16"
+        },
+        "PrivateSubnetCidr": {
+          "Type": "String",
+          "Default": "10.0.1.0/24"
+        },
+        "PrivateSubnetCidrB": {
+          "Type": "String",
+          "Default": "10.0.2.0/24"
+        }
+      },
+      "Resources": {
+        "Vpc": {
+          "Type": "AWS::EC2::VPC",
+          "Properties": {
+            "CidrBlock": {
+              "Ref": "VpcCidr"
+            },
+            "EnableDnsSupport": false,
+            "EnableDnsHostnames": false,
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": {
+                  "Fn::Sub": "${AWS::StackName}-vpc"
+                }
+              }
+            ]
+          }
+        },
+        "PrivateSubnet": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "VpcId": {
+              "Ref": "Vpc"
+            },
+            "CidrBlock": {
+              "Ref": "PrivateSubnetCidr"
+            },
+            "AvailabilityZone": "eu-west-3a",
+            "MapPublicIpOnLaunch": false,
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": {
+                  "Fn::Sub": "subnet-A"
+                }
+              }
+            ]
+          }
+        },
+        "PrivateSubnetB": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "VpcId": {
+              "Ref": "Vpc"
+            },
+            "CidrBlock": {
+              "Ref": "PrivateSubnetCidrB"
+            },
+            "AvailabilityZone": "eu-west-3b",
+            "MapPublicIpOnLaunch": false,
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": {
+                  "Fn::Sub": "subnet-B"
+                }
+              }
+            ]
+          }
+        },
+        "MyQueue": {
+          "Type": "AWS::SQS::Queue",
+          "Properties": {
+            "QueueName": "todolist-queue-staging",
+            "VisibilityTimeout": 30
+          }
+        },
+        "UsersTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "userId",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "userId",
+                "KeyType": "HASH"
+              }
+            ],
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": 1,
+              "WriteCapacityUnits": 1
+            },
+            "TableName": "users-table-staging"
+          }
+        }
+      },
+      "Outputs": {}
+    },
+    "configValidationMode": "warn",
+    "serviceFilename": "serverless",
+    "initialServerlessConfig": {
+      "org": "orgpavca",
+      "app": "todolist",
+      "service": "toDoList",
+      "stages": {
+        "default": {
+          "params": {
+            "tableName": "users-table-staging"
+          }
+        }
+      },
+      "plugins": {
+        "$ref": "$[\"service\"][\"plugins\"]"
+      },
+      "custom": {
+        "$ref": "$[\"service\"][\"custom\"]"
+      },
+      "provider": {
+        "$ref": "$[\"service\"][\"provider\"]"
+      },
+      "functions": {
+        "$ref": "$[\"service\"][\"functions\"]"
+      },
+      "resources": {
+        "$ref": "$[\"service\"][\"resources\"]"
+      }
+    },
+    "app": "todolist",
+    "appId": null,
+    "org": "orgpavca",
+    "orgId": null,
+    "layers": {},
+    "artifact": "/Users/pavelcalin/Desktop/devOps-labs/Serverless/toDoList/.serverless/toDoList.zip"
+  },
+  "package": {
+    "artifactDirectoryName": "serverless/toDoList/staging/1783494642650-2026-07-08T07:10:42.650Z",
+    "artifact": "toDoList.zip"
+  }
+}

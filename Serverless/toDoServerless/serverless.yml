@@ -7,14 +7,6 @@ stages:
     params:
       tableName: "users-table-${sls:stage}"
 
-plugins:
-  - serverless-wsgi
-  - serverless-python-requirements
-
-custom:
-  wsgi:
-    app: app.app
-
 provider:
   name: aws
   runtime: python3.12
@@ -40,26 +32,22 @@ provider:
             - Fn::GetAtt: [MyQueue, Arn]
   environment:
     USERS_TABLE: ${param:tableName}
+    QUEUE_URL: !Ref MyQueue
 
 functions:
-  api:
-    handler: wsgi_handler.handler
-    events:
-      - http:
-          path: /
-          method: ANY
-      - http:
-          path: /{proxy+}
-          method: ANY
-
-  worker:
-    handler: worker.handler
-    timeout: 20
-    events:
-      - sqs:
-          arn: !GetAtt MyQueue.Arn
-          batchSize: 10
-          functionResponseType: ReportBatchItemFailures
+  producer:
+    handler: producer.handler # required, handler set in AWS Lambda
+    name: ${sls:stage}-Producer # optional, Deployed Lambda name
+    description: Push in queue
+    runtime: python3.11 # optional overwrite, default is provider runtime
+    memorySize: 512 # optional, in MB, default is 1024
+    timeout: 10 # optional, in seconds, default is 6
+    tracing: PassThrough # optional, overwrite, can be 'Active' or 'PassThrough'
+    vpc:
+      securityGroupIds:
+        - !Ref InstanceSecurityGroup
+      subnetIds:
+        - !Ref PrivateSubnetA
 
 resources:
   Parameters:
@@ -72,18 +60,36 @@ resources:
     PrivateSubnetCidrB:
       Type: String
       Default: 10.0.2.0/24
+
+
   Resources:
+
+    InstanceSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: SSH - allow
+        VpcId: !Ref Vpc
+        SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: !Ref VpcCidr
+            Description: SSH din EICE
+        Tags:
+          - Key: Name
+            Value: !Sub "${AWS::StackName}-instance-sg"
+
     Vpc:
       Type: AWS::EC2::VPC
       Properties:
         CidrBlock: !Ref VpcCidr
-        EnableDnsSupport: yes
-        EnableDnsHostnames: yes
+        EnableDnsSupport: true
+        EnableDnsHostnames: true
         Tags:
           - Key: Name
             Value: !Sub "${AWS::StackName}-vpc"
 
-    PrivateSubnet:
+    PrivateSubnetA:
       Type: AWS::EC2::Subnet
       Properties:
         VpcId: !Ref Vpc
