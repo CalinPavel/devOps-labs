@@ -131,3 +131,26 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
         TableName: ${param:tableName}
+
+    SqsEndpoint:
+      Type: AWS::EC2::VPCEndpoint
+      Properties:
+        VpcId: !Ref Vpc
+        ServiceName: !Sub "com.amazonaws.${AWS::Region}.sqs"
+        VpcEndpointType: Interface
+        PrivateDnsEnabled: true
+        SubnetIds:
+          - !Ref PrivateSubnetA
+        SecurityGroupIds:
+          - !Ref EndpointSecurityGroup
+
+    EndpointSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: HTTPS de la Lambda catre endpoint
+        VpcId: !Ref Vpc
+        SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 443
+            ToPort: 443
+            SourceSecurityGroupId: !Ref InstanceSecurityGroup

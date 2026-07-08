@@ -148,7 +148,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
-          "S3Key": "serverless/toDoList/staging/1783511730090-2026-07-08T11:55:30.090Z/toDoList.zip"
+          "S3Key": "serverless/toDoList/staging/1783512440100-2026-07-08T12:07:20.100Z/toDoList.zip"
         },
         "Handler": "producer.handler",
         "Runtime": "python3.11",
@@ -161,7 +161,10 @@
         },
         "Environment": {
           "Variables": {
-            "USERS_TABLE": "users-table-staging"
+            "USERS_TABLE": "users-table-staging",
+            "QUEUE_URL": {
+              "Ref": "MyQueue"
+            }
           }
         },
         "Role": {
@@ -187,7 +190,7 @@
         "ProducerLogGroup"
       ]
     },
-    "ProducerLambdaVersionFyaRb4e7xhBy7RigwQmMP9VEudx6ARrVr7H5A3VLo": {
+    "ProducerLambdaVersionUj9JrAQE3FNFtWTQ1D5bzdvLOSWOWCkwqYmZRiF0": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
@@ -314,6 +317,29 @@
         },
         "TableName": "users-table-staging"
       }
+    },
+    "SqsEndpoint": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "ServiceName": {
+          "Fn::Sub": "com.amazonaws.${AWS::Region}.sqs"
+        },
+        "VpcEndpointType": "Interface",
+        "PrivateDnsEnabled": true,
+        "SubnetIds": [
+          {
+            "Ref": "PrivateSubnetA"
+          }
+        ],
+        "SecurityGroupIds": [
+          {
+            "Ref": "EndpointSecurityGroup"
+          }
+        ]
+      }
     }
   },
   "Outputs": {
@@ -326,7 +352,7 @@
     "ProducerLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ProducerLambdaVersionFyaRb4e7xhBy7RigwQmMP9VEudx6ARrVr7H5A3VLo"
+        "Ref": "ProducerLambdaVersionUj9JrAQE3FNFtWTQ1D5bzdvLOSWOWCkwqYmZRiF0"
       },
       "Export": {
         "Name": "sls-toDoList-staging-ProducerLambdaFunctionQualifiedArn"
