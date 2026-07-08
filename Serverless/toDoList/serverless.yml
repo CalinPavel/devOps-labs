@@ -1,0 +1,118 @@
+org: orgpavca
+app: todolist
+service: toDoList
+
+stages:
+  default:
+    params:
+      tableName: "users-table-${sls:stage}"
+
+plugins:
+  - serverless-wsgi
+  - serverless-python-requirements
+
+custom:
+  wsgi:
+    app: app.app
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: eu-west-3
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [UsersTable, Arn]
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+          Resource:
+            - Fn::GetAtt: [MyQueue, Arn]
+  environment:
+    USERS_TABLE: ${param:tableName}
+
+functions:
+  api:
+    handler: wsgi_handler.handler
+    events:
+      - http:
+          path: /
+          method: ANY
+      - http:
+          path: /{proxy+}
+          method: ANY
+
+resources:
+  Parameters:
+    VpcCidr:
+      Type: String
+      Default: 10.0.0.0/16
+    PrivateSubnetCidr:
+      Type: String
+      Default: 10.0.1.0/24
+    PrivateSubnetCidrB:
+      Type: String
+      Default: 10.0.2.0/24
+  Resources:
+    Vpc:
+      Type: AWS::EC2::VPC
+      Properties:
+        CidrBlock: !Ref VpcCidr
+        EnableDnsSupport: false
+        EnableDnsHostnames: false
+        Tags:
+          - Key: Name
+            Value: !Sub "${AWS::StackName}-vpc"
+
+    PrivateSubnet:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref Vpc
+        CidrBlock: !Ref PrivateSubnetCidr
+        AvailabilityZone: eu-west-3a
+        MapPublicIpOnLaunch: false
+        Tags:
+          - Key: Name
+            Value: !Sub "subnet-A"
+
+    PrivateSubnetB:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref Vpc
+        CidrBlock: !Ref PrivateSubnetCidrB
+        AvailabilityZone: eu-west-3b
+        MapPublicIpOnLaunch: false
+        Tags:
+          - Key: Name
+            Value: !Sub "subnet-B"
+
+    MyQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: todolist-queue-${sls:stage}
+        VisibilityTimeout: 30
+
+
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${param:tableName}

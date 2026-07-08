@@ -1,0 +1,1 @@
+https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/scenario-sqs-queue.html
