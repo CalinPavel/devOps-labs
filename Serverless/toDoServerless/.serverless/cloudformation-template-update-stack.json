@@ -148,7 +148,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
-          "S3Key": "serverless/toDoList/staging/1783514827785-2026-07-08T12:47:07.785Z/toDoList.zip"
+          "S3Key": "serverless/toDoList/staging/1783517642797-2026-07-08T13:34:02.797Z/toDoList.zip"
         },
         "Handler": "producer.handler",
         "Runtime": "python3.11",
@@ -190,14 +190,14 @@
         "ProducerLogGroup"
       ]
     },
-    "ProducerLambdaVersionZFLz6iW9IOVfZBmgNAZ6ToGE2pvZcgC7rg9XFaKkVjY": {
+    "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ProducerLambdaFunction"
         },
-        "CodeSha256": "Il6UedF1qEAw7ZVfPa0SXoRCfPJIhQ+KgvwYUT0enlo=",
+        "CodeSha256": "X1mpJ/xgNMEQMqRWKBz161ByRy6o6PnnuakgcaE/X60=",
         "Description": "Push in queue"
       }
     },
@@ -210,7 +210,26 @@
             "PRIVATE"
           ]
         },
-        "Policy": ""
+        "Policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": [
+                "execute-api:Invoke"
+              ],
+              "Resource": "execute-api:/*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:SourceVpce": {
+                    "Ref": "ExecuteApiEndpoint"
+                  }
+                }
+              }
+            }
+          ]
+        }
       }
     },
     "ApiGatewayResourceTasks": {
@@ -274,7 +293,7 @@
         "ProducerLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1783514825021": {
+    "ApiGatewayDeployment1783517639062": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -321,34 +340,6 @@
             ]
           ]
         }
-      }
-    },
-    "InstanceSecurityGroup": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "GroupDescription": "SSH - allow",
-        "VpcId": {
-          "Ref": "Vpc"
-        },
-        "SecurityGroupIngress": [
-          {
-            "IpProtocol": "tcp",
-            "FromPort": 22,
-            "ToPort": 22,
-            "CidrIp": {
-              "Ref": "VpcCidr"
-            },
-            "Description": "SSH din EICE"
-          }
-        ],
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Sub": "${AWS::StackName}-instance-sg"
-            }
-          }
-        ]
       }
     },
     "Vpc": {
@@ -504,6 +495,83 @@
           }
         ]
       }
+    },
+    "Eice": {
+      "Type": "AWS::EC2::InstanceConnectEndpoint",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PrivateSubnetA"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "InstanceSecurityGroup"
+          }
+        ],
+        "PreserveClientIp": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-eice"
+            }
+          }
+        ]
+      }
+    },
+    "InstanceA": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "ImageId": {
+          "Ref": "LatestAmiId"
+        },
+        "SubnetId": {
+          "Ref": "PrivateSubnetA"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "InstanceSecurityGroup"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "Node-A"
+            }
+          }
+        ]
+      }
+    },
+    "InstanceSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "SSH - allow",
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 22,
+            "ToPort": 22,
+            "CidrIp": {
+              "Ref": "VpcCidr"
+            },
+            "Description": "SSH din EICE"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-instance-sg"
+            }
+          }
+        ]
+      }
     }
   },
   "Outputs": {
@@ -516,7 +584,7 @@
     "ProducerLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ProducerLambdaVersionZFLz6iW9IOVfZBmgNAZ6ToGE2pvZcgC7rg9XFaKkVjY"
+        "Ref": "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg"
       },
       "Export": {
         "Name": "sls-toDoList-staging-ProducerLambdaFunctionQualifiedArn"
@@ -561,6 +629,20 @@
     "PrivateSubnetCidrB": {
       "Type": "String",
       "Default": "10.0.2.0/24"
+    },
+    "InstanceType": {
+      "Type": "String",
+      "Default": "t3.micro",
+      "AllowedValues": [
+        "t3.micro",
+        "t3.small",
+        "t3.medium"
+      ],
+      "Description": "EC2 type"
+    },
+    "LatestAmiId": {
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+      "Default": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
     }
   }
 }

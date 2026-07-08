@@ -14,14 +14,14 @@ provider:
   region: eu-west-3
 
   apiGateway:
-  resourcePolicy:
-    - Effect: Allow
-      Principal: "*"
-      Action: execute-api:Invoke
-      Resource: execute-api:/*
-      Condition:
-        StringEquals:
-          aws:SourceVpce: !Ref ExecuteApiEndpoint
+    resourcePolicy:
+      - Effect: Allow
+        Principal: "*"
+        Action: execute-api:Invoke
+        Resource: execute-api:/*
+        Condition:
+          StringEquals:
+            aws:SourceVpce: !Ref ExecuteApiEndpoint
 
   iam:
     role:
@@ -75,24 +75,17 @@ resources:
     PrivateSubnetCidrB:
       Type: String
       Default: 10.0.2.0/24
+    InstanceType:
+      Type: String
+      Default: t3.micro
+      AllowedValues: [t3.micro, t3.small, t3.medium]
+      Description: EC2 type
+    LatestAmiId:
+      Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+      Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
 
 
   Resources:
-
-    InstanceSecurityGroup:
-      Type: AWS::EC2::SecurityGroup
-      Properties:
-        GroupDescription: SSH - allow
-        VpcId: !Ref Vpc
-        SecurityGroupIngress:
-          - IpProtocol: tcp
-            FromPort: 22
-            ToPort: 22
-            CidrIp: !Ref VpcCidr
-            Description: SSH din EICE
-        Tags:
-          - Key: Name
-            Value: !Sub "${AWS::StackName}-instance-sg"
 
     Vpc:
       Type: AWS::EC2::VPC
@@ -181,3 +174,45 @@ resources:
           - !Ref PrivateSubnetA
         SecurityGroupIds:
           - !Ref EndpointSecurityGroup
+
+#------------------Instance for testing-----------------
+    Eice:
+      Type: AWS::EC2::InstanceConnectEndpoint
+      Properties:
+        SubnetId: !Ref PrivateSubnetA
+        SecurityGroupIds:
+          - !Ref InstanceSecurityGroup
+        PreserveClientIp: false
+        Tags:
+          - Key: Name
+            Value: !Sub "${AWS::StackName}-eice"
+
+    InstanceA:
+      Type: AWS::EC2::Instance
+      Properties:
+        InstanceType: !Ref InstanceType
+        ImageId: !Ref LatestAmiId
+        SubnetId: !Ref PrivateSubnetA
+        # KeyName: !Ref KeyPair
+        SecurityGroupIds:
+          - !Ref InstanceSecurityGroup
+        Tags:
+          - Key: Name
+            Value: !Sub "Node-A"
+
+    InstanceSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: SSH - allow
+        VpcId: !Ref Vpc
+        SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: !Ref VpcCidr
+            Description: SSH din EICE
+        Tags:
+          - Key: Name
+            Value: !Sub "${AWS::StackName}-instance-sg"
+
+#------------------Instance for testing-----------------

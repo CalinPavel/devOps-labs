@@ -19,21 +19,25 @@
         "name": "aws",
         "runtime": "python3.12",
         "region": "eu-west-3",
-        "resourcePolicy": [
-          {
-            "Effect": "Allow",
-            "Principal": "*",
-            "Action": "execute-api:Invoke",
-            "Resource": "execute-api:/*",
-            "Condition": {
-              "StringEquals": {
-                "aws:SourceVpce": {
-                  "Ref": "ExecuteApiEndpoint"
+        "apiGateway": {
+          "resourcePolicy": [
+            {
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": [
+                "execute-api:Invoke"
+              ],
+              "Resource": "execute-api:/*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:SourceVpce": {
+                    "Ref": "ExecuteApiEndpoint"
+                  }
                 }
               }
             }
-          }
-        ],
+          ]
+        },
         "iam": {
           "role": {
             "statements": [
@@ -81,7 +85,6 @@
         },
         "stage": "staging",
         "versionFunctions": true,
-        "apiGateway": null,
         "compiledCloudFormationTemplate": {
           "AWSTemplateFormatVersion": "2010-09-09",
           "Description": "The AWS CloudFormation template for this Serverless application",
@@ -232,7 +235,7 @@
               "Properties": {
                 "Code": {
                   "S3Bucket": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
-                  "S3Key": "serverless/toDoList/staging/1783514827785-2026-07-08T12:47:07.785Z/toDoList.zip"
+                  "S3Key": "serverless/toDoList/staging/1783517642797-2026-07-08T13:34:02.797Z/toDoList.zip"
                 },
                 "Handler": "producer.handler",
                 "Runtime": "python3.11",
@@ -274,14 +277,14 @@
                 "ProducerLogGroup"
               ]
             },
-            "ProducerLambdaVersionZFLz6iW9IOVfZBmgNAZ6ToGE2pvZcgC7rg9XFaKkVjY": {
+            "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg": {
               "Type": "AWS::Lambda::Version",
               "DeletionPolicy": "Retain",
               "Properties": {
                 "FunctionName": {
                   "Ref": "ProducerLambdaFunction"
                 },
-                "CodeSha256": "Il6UedF1qEAw7ZVfPa0SXoRCfPJIhQ+KgvwYUT0enlo=",
+                "CodeSha256": "X1mpJ/xgNMEQMqRWKBz161ByRy6o6PnnuakgcaE/X60=",
                 "Description": "Push in queue"
               }
             },
@@ -294,7 +297,26 @@
                     "PRIVATE"
                   ]
                 },
-                "Policy": ""
+                "Policy": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Principal": "*",
+                      "Action": [
+                        "execute-api:Invoke"
+                      ],
+                      "Resource": "execute-api:/*",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:SourceVpce": {
+                            "Ref": "ExecuteApiEndpoint"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
               }
             },
             "ApiGatewayResourceTasks": {
@@ -358,7 +380,7 @@
                 "ProducerLambdaPermissionApiGateway"
               ]
             },
-            "ApiGatewayDeployment1783514825021": {
+            "ApiGatewayDeployment1783517639062": {
               "Type": "AWS::ApiGateway::Deployment",
               "Properties": {
                 "RestApiId": {
@@ -405,34 +427,6 @@
                     ]
                   ]
                 }
-              }
-            },
-            "InstanceSecurityGroup": {
-              "Type": "AWS::EC2::SecurityGroup",
-              "Properties": {
-                "GroupDescription": "SSH - allow",
-                "VpcId": {
-                  "Ref": "Vpc"
-                },
-                "SecurityGroupIngress": [
-                  {
-                    "IpProtocol": "tcp",
-                    "FromPort": 22,
-                    "ToPort": 22,
-                    "CidrIp": {
-                      "Ref": "VpcCidr"
-                    },
-                    "Description": "SSH din EICE"
-                  }
-                ],
-                "Tags": [
-                  {
-                    "Key": "Name",
-                    "Value": {
-                      "Fn::Sub": "${AWS::StackName}-instance-sg"
-                    }
-                  }
-                ]
               }
             },
             "Vpc": {
@@ -588,6 +582,83 @@
                   }
                 ]
               }
+            },
+            "Eice": {
+              "Type": "AWS::EC2::InstanceConnectEndpoint",
+              "Properties": {
+                "SubnetId": {
+                  "Ref": "PrivateSubnetA"
+                },
+                "SecurityGroupIds": [
+                  {
+                    "Ref": "InstanceSecurityGroup"
+                  }
+                ],
+                "PreserveClientIp": false,
+                "Tags": [
+                  {
+                    "Key": "Name",
+                    "Value": {
+                      "Fn::Sub": "${AWS::StackName}-eice"
+                    }
+                  }
+                ]
+              }
+            },
+            "InstanceA": {
+              "Type": "AWS::EC2::Instance",
+              "Properties": {
+                "InstanceType": {
+                  "Ref": "InstanceType"
+                },
+                "ImageId": {
+                  "Ref": "LatestAmiId"
+                },
+                "SubnetId": {
+                  "Ref": "PrivateSubnetA"
+                },
+                "SecurityGroupIds": [
+                  {
+                    "Ref": "InstanceSecurityGroup"
+                  }
+                ],
+                "Tags": [
+                  {
+                    "Key": "Name",
+                    "Value": {
+                      "Fn::Sub": "Node-A"
+                    }
+                  }
+                ]
+              }
+            },
+            "InstanceSecurityGroup": {
+              "Type": "AWS::EC2::SecurityGroup",
+              "Properties": {
+                "GroupDescription": "SSH - allow",
+                "VpcId": {
+                  "Ref": "Vpc"
+                },
+                "SecurityGroupIngress": [
+                  {
+                    "IpProtocol": "tcp",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "CidrIp": {
+                      "Ref": "VpcCidr"
+                    },
+                    "Description": "SSH din EICE"
+                  }
+                ],
+                "Tags": [
+                  {
+                    "Key": "Name",
+                    "Value": {
+                      "Fn::Sub": "${AWS::StackName}-instance-sg"
+                    }
+                  }
+                ]
+              }
             }
           },
           "Outputs": {
@@ -600,7 +671,7 @@
             "ProducerLambdaFunctionQualifiedArn": {
               "Description": "Current Lambda function version",
               "Value": {
-                "Ref": "ProducerLambdaVersionZFLz6iW9IOVfZBmgNAZ6ToGE2pvZcgC7rg9XFaKkVjY"
+                "Ref": "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg"
               },
               "Export": {
                 "Name": "sls-toDoList-staging-ProducerLambdaFunctionQualifiedArn"
@@ -645,6 +716,20 @@
             "PrivateSubnetCidrB": {
               "Type": "String",
               "Default": "10.0.2.0/24"
+            },
+            "InstanceType": {
+              "Type": "String",
+              "Default": "t3.micro",
+              "AllowedValues": [
+                "t3.micro",
+                "t3.small",
+                "t3.medium"
+              ],
+              "Description": "EC2 type"
+            },
+            "LatestAmiId": {
+              "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+              "Default": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
             }
           }
         },
@@ -682,7 +767,7 @@
           ],
           "package": {},
           "memory": 512,
-          "versionLogicalId": "ProducerLambdaVersionZFLz6iW9IOVfZBmgNAZ6ToGE2pvZcgC7rg9XFaKkVjY"
+          "versionLogicalId": "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg"
         }
       },
       "resources": {
@@ -698,37 +783,23 @@
           "PrivateSubnetCidrB": {
             "Type": "String",
             "Default": "10.0.2.0/24"
+          },
+          "InstanceType": {
+            "Type": "String",
+            "Default": "t3.micro",
+            "AllowedValues": [
+              "t3.micro",
+              "t3.small",
+              "t3.medium"
+            ],
+            "Description": "EC2 type"
+          },
+          "LatestAmiId": {
+            "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+            "Default": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
           }
         },
         "Resources": {
-          "InstanceSecurityGroup": {
-            "Type": "AWS::EC2::SecurityGroup",
-            "Properties": {
-              "GroupDescription": "SSH - allow",
-              "VpcId": {
-                "Ref": "Vpc"
-              },
-              "SecurityGroupIngress": [
-                {
-                  "IpProtocol": "tcp",
-                  "FromPort": 22,
-                  "ToPort": 22,
-                  "CidrIp": {
-                    "Ref": "VpcCidr"
-                  },
-                  "Description": "SSH din EICE"
-                }
-              ],
-              "Tags": [
-                {
-                  "Key": "Name",
-                  "Value": {
-                    "Fn::Sub": "${AWS::StackName}-instance-sg"
-                  }
-                }
-              ]
-            }
-          },
           "Vpc": {
             "Type": "AWS::EC2::VPC",
             "Properties": {
@@ -882,6 +953,83 @@
                 }
               ]
             }
+          },
+          "Eice": {
+            "Type": "AWS::EC2::InstanceConnectEndpoint",
+            "Properties": {
+              "SubnetId": {
+                "Ref": "PrivateSubnetA"
+              },
+              "SecurityGroupIds": [
+                {
+                  "Ref": "InstanceSecurityGroup"
+                }
+              ],
+              "PreserveClientIp": false,
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "${AWS::StackName}-eice"
+                  }
+                }
+              ]
+            }
+          },
+          "InstanceA": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+              "InstanceType": {
+                "Ref": "InstanceType"
+              },
+              "ImageId": {
+                "Ref": "LatestAmiId"
+              },
+              "SubnetId": {
+                "Ref": "PrivateSubnetA"
+              },
+              "SecurityGroupIds": [
+                {
+                  "Ref": "InstanceSecurityGroup"
+                }
+              ],
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "Node-A"
+                  }
+                }
+              ]
+            }
+          },
+          "InstanceSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+              "GroupDescription": "SSH - allow",
+              "VpcId": {
+                "Ref": "Vpc"
+              },
+              "SecurityGroupIngress": [
+                {
+                  "IpProtocol": "tcp",
+                  "FromPort": 22,
+                  "ToPort": 22,
+                  "CidrIp": {
+                    "Ref": "VpcCidr"
+                  },
+                  "Description": "SSH din EICE"
+                }
+              ],
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "${AWS::StackName}-instance-sg"
+                  }
+                }
+              ]
+            }
           }
         },
         "Outputs": {}
@@ -892,21 +1040,25 @@
       "name": "aws",
       "runtime": "python3.12",
       "region": "eu-west-3",
-      "resourcePolicy": [
-        {
-          "Effect": "Allow",
-          "Principal": "*",
-          "Action": "execute-api:Invoke",
-          "Resource": "execute-api:/*",
-          "Condition": {
-            "StringEquals": {
-              "aws:SourceVpce": {
-                "Ref": "ExecuteApiEndpoint"
+      "apiGateway": {
+        "resourcePolicy": [
+          {
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": [
+              "execute-api:Invoke"
+            ],
+            "Resource": "execute-api:/*",
+            "Condition": {
+              "StringEquals": {
+                "aws:SourceVpce": {
+                  "Ref": "ExecuteApiEndpoint"
+                }
               }
             }
           }
-        }
-      ],
+        ]
+      },
       "iam": {
         "role": {
           "statements": [
@@ -954,7 +1106,6 @@
       },
       "stage": "staging",
       "versionFunctions": true,
-      "apiGateway": null,
       "compiledCloudFormationTemplate": {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Description": "The AWS CloudFormation template for this Serverless application",
@@ -1105,7 +1256,7 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
-                "S3Key": "serverless/toDoList/staging/1783514827785-2026-07-08T12:47:07.785Z/toDoList.zip"
+                "S3Key": "serverless/toDoList/staging/1783517642797-2026-07-08T13:34:02.797Z/toDoList.zip"
               },
               "Handler": "producer.handler",
               "Runtime": "python3.11",
@@ -1147,14 +1298,14 @@
               "ProducerLogGroup"
             ]
           },
-          "ProducerLambdaVersionZFLz6iW9IOVfZBmgNAZ6ToGE2pvZcgC7rg9XFaKkVjY": {
+          "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ProducerLambdaFunction"
               },
-              "CodeSha256": "Il6UedF1qEAw7ZVfPa0SXoRCfPJIhQ+KgvwYUT0enlo=",
+              "CodeSha256": "X1mpJ/xgNMEQMqRWKBz161ByRy6o6PnnuakgcaE/X60=",
               "Description": "Push in queue"
             }
           },
@@ -1167,7 +1318,26 @@
                   "PRIVATE"
                 ]
               },
-              "Policy": ""
+              "Policy": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": "*",
+                    "Action": [
+                      "execute-api:Invoke"
+                    ],
+                    "Resource": "execute-api:/*",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:SourceVpce": {
+                          "Ref": "ExecuteApiEndpoint"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
             }
           },
           "ApiGatewayResourceTasks": {
@@ -1231,7 +1401,7 @@
               "ProducerLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1783514825021": {
+          "ApiGatewayDeployment1783517639062": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -1278,34 +1448,6 @@
                   ]
                 ]
               }
-            }
-          },
-          "InstanceSecurityGroup": {
-            "Type": "AWS::EC2::SecurityGroup",
-            "Properties": {
-              "GroupDescription": "SSH - allow",
-              "VpcId": {
-                "Ref": "Vpc"
-              },
-              "SecurityGroupIngress": [
-                {
-                  "IpProtocol": "tcp",
-                  "FromPort": 22,
-                  "ToPort": 22,
-                  "CidrIp": {
-                    "Ref": "VpcCidr"
-                  },
-                  "Description": "SSH din EICE"
-                }
-              ],
-              "Tags": [
-                {
-                  "Key": "Name",
-                  "Value": {
-                    "Fn::Sub": "${AWS::StackName}-instance-sg"
-                  }
-                }
-              ]
             }
           },
           "Vpc": {
@@ -1461,6 +1603,83 @@
                 }
               ]
             }
+          },
+          "Eice": {
+            "Type": "AWS::EC2::InstanceConnectEndpoint",
+            "Properties": {
+              "SubnetId": {
+                "Ref": "PrivateSubnetA"
+              },
+              "SecurityGroupIds": [
+                {
+                  "Ref": "InstanceSecurityGroup"
+                }
+              ],
+              "PreserveClientIp": false,
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "${AWS::StackName}-eice"
+                  }
+                }
+              ]
+            }
+          },
+          "InstanceA": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+              "InstanceType": {
+                "Ref": "InstanceType"
+              },
+              "ImageId": {
+                "Ref": "LatestAmiId"
+              },
+              "SubnetId": {
+                "Ref": "PrivateSubnetA"
+              },
+              "SecurityGroupIds": [
+                {
+                  "Ref": "InstanceSecurityGroup"
+                }
+              ],
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "Node-A"
+                  }
+                }
+              ]
+            }
+          },
+          "InstanceSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+              "GroupDescription": "SSH - allow",
+              "VpcId": {
+                "Ref": "Vpc"
+              },
+              "SecurityGroupIngress": [
+                {
+                  "IpProtocol": "tcp",
+                  "FromPort": 22,
+                  "ToPort": 22,
+                  "CidrIp": {
+                    "Ref": "VpcCidr"
+                  },
+                  "Description": "SSH din EICE"
+                }
+              ],
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Sub": "${AWS::StackName}-instance-sg"
+                  }
+                }
+              ]
+            }
           }
         },
         "Outputs": {
@@ -1473,7 +1692,7 @@
           "ProducerLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ProducerLambdaVersionZFLz6iW9IOVfZBmgNAZ6ToGE2pvZcgC7rg9XFaKkVjY"
+              "Ref": "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg"
             },
             "Export": {
               "Name": "sls-toDoList-staging-ProducerLambdaFunctionQualifiedArn"
@@ -1518,6 +1737,20 @@
           "PrivateSubnetCidrB": {
             "Type": "String",
             "Default": "10.0.2.0/24"
+          },
+          "InstanceType": {
+            "Type": "String",
+            "Default": "t3.micro",
+            "AllowedValues": [
+              "t3.micro",
+              "t3.small",
+              "t3.medium"
+            ],
+            "Description": "EC2 type"
+          },
+          "LatestAmiId": {
+            "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+            "Default": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
           }
         }
       },
@@ -1535,12 +1768,7 @@
       "serviceProvider": null,
       "instanceParameters": null
     },
-    "error": {
-      "message": "Stack:arn:aws:cloudformation:eu-west-3:368287211169:stack/toDoList-staging/ec6f8920-7ac3-11f1-bc86-06b0d08a28bb is in UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS state and can not be updated.",
-      "stack": "ServerlessError2: Stack:arn:aws:cloudformation:eu-west-3:368287211169:stack/toDoList-staging/ec6f8920-7ac3-11f1-bc86-06b0d08a28bb is in UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS state and can not be updated.\n    at file:///Users/pavelcalin/.serverless/releases/4.38.1/package/dist/sf-core.js:1533:36\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async persistentRequest (file:///Users/pavelcalin/.serverless/releases/4.38.1/package/dist/sf-core.js:1532:1958)",
-      "code": "AWS_CLOUD_FORMATION_UPDATE_STACK_VALIDATION_ERROR"
-    },
-    "serviceRawFile": "org: orgpavca\napp: todolist\nservice: toDoList\n\nstages:\n  default:\n    params:\n      tableName: \"users-table-${sls:stage}\"\n\nprovider:\n  endpointType: PRIVATE\n  name: aws\n  runtime: python3.12\n  region: eu-west-3\n\n  apiGateway:\n  resourcePolicy:\n    - Effect: Allow\n      Principal: \"*\"\n      Action: execute-api:Invoke\n      Resource: execute-api:/*\n      Condition:\n        StringEquals:\n          aws:SourceVpce: !Ref ExecuteApiEndpoint\n\n  iam:\n    role:\n      statements:\n        - Effect: Allow\n          Action:\n            - dynamodb:Query\n            - dynamodb:Scan\n            - dynamodb:GetItem\n            - dynamodb:PutItem\n            - dynamodb:UpdateItem\n            - dynamodb:DeleteItem\n          Resource:\n            - Fn::GetAtt: [UsersTable, Arn]\n        - Effect: Allow\n          Action:\n            - sqs:SendMessage\n          Resource:\n            - Fn::GetAtt: [MyQueue, Arn]\n  environment:\n    USERS_TABLE: ${param:tableName}\n    QUEUE_URL: !Ref MyQueue\n\nfunctions:\n  producer:\n    handler: producer.handler # required, handler set in AWS Lambda\n    name: ${sls:stage}-Producer # optional, Deployed Lambda name\n    description: Push in queue\n    runtime: python3.11 # optional overwrite, default is provider runtime\n    memorySize: 512 # optional, in MB, default is 1024\n    timeout: 10 # optional, in seconds, default is 6\n    tracing: PassThrough # optional, overwrite, can be 'Active' or 'PassThrough'\n    vpc:\n      securityGroupIds:\n        - !Ref InstanceSecurityGroup\n      subnetIds:\n        - !Ref PrivateSubnetA\n    events:\n      - http:\n          path: /tasks\n          method: post\n\nresources:\n  Parameters:\n    VpcCidr:\n      Type: String\n      Default: 10.0.0.0/16\n    PrivateSubnetCidr:\n      Type: String\n      Default: 10.0.1.0/24\n    PrivateSubnetCidrB:\n      Type: String\n      Default: 10.0.2.0/24\n\n\n  Resources:\n\n    InstanceSecurityGroup:\n      Type: AWS::EC2::SecurityGroup\n      Properties:\n        GroupDescription: SSH - allow\n        VpcId: !Ref Vpc\n        SecurityGroupIngress:\n          - IpProtocol: tcp\n            FromPort: 22\n            ToPort: 22\n            CidrIp: !Ref VpcCidr\n            Description: SSH din EICE\n        Tags:\n          - Key: Name\n            Value: !Sub \"${AWS::StackName}-instance-sg\"\n\n    Vpc:\n      Type: AWS::EC2::VPC\n      Properties:\n        CidrBlock: !Ref VpcCidr\n        EnableDnsSupport: true\n        EnableDnsHostnames: true\n        Tags:\n          - Key: Name\n            Value: !Sub \"${AWS::StackName}-vpc\"\n\n    PrivateSubnetA:\n      Type: AWS::EC2::Subnet\n      Properties:\n        VpcId: !Ref Vpc\n        CidrBlock: !Ref PrivateSubnetCidr\n        AvailabilityZone: eu-west-3a\n        MapPublicIpOnLaunch: false\n        Tags:\n          - Key: Name\n            Value: !Sub \"subnet-A\"\n\n    PrivateSubnetB:\n      Type: AWS::EC2::Subnet\n      Properties:\n        VpcId: !Ref Vpc\n        CidrBlock: !Ref PrivateSubnetCidrB\n        AvailabilityZone: eu-west-3b\n        MapPublicIpOnLaunch: false\n        Tags:\n          - Key: Name\n            Value: !Sub \"subnet-B\"\n\n    MyQueue:\n      Type: AWS::SQS::Queue\n      Properties:\n        QueueName: todolist-queue-${sls:stage}\n        VisibilityTimeout: 30\n\n\n    UsersTable:\n      Type: AWS::DynamoDB::Table\n      Properties:\n        AttributeDefinitions:\n          - AttributeName: userId\n            AttributeType: S\n        KeySchema:\n          - AttributeName: userId\n            KeyType: HASH\n        ProvisionedThroughput:\n          ReadCapacityUnits: 1\n          WriteCapacityUnits: 1\n        TableName: ${param:tableName}\n\n    SqsEndpoint:\n      Type: AWS::EC2::VPCEndpoint\n      Properties:\n        VpcId: !Ref Vpc\n        ServiceName: !Sub \"com.amazonaws.${AWS::Region}.sqs\"\n        VpcEndpointType: Interface\n        PrivateDnsEnabled: true\n        SubnetIds:\n          - !Ref PrivateSubnetA\n        SecurityGroupIds:\n          - !Ref EndpointSecurityGroup\n\n    EndpointSecurityGroup:\n      Type: AWS::EC2::SecurityGroup\n      Properties:\n        GroupDescription: HTTPS de la Lambda catre endpoint\n        VpcId: !Ref Vpc\n        SecurityGroupIngress:\n          - IpProtocol: tcp\n            FromPort: 443\n            ToPort: 443\n            SourceSecurityGroupId: !Ref InstanceSecurityGroup\n\n    ExecuteApiEndpoint:\n      Type: AWS::EC2::VPCEndpoint\n      Properties:\n        VpcId: !Ref Vpc\n        ServiceName: !Sub \"com.amazonaws.${AWS::Region}.execute-api\"\n        VpcEndpointType: Interface\n        PrivateDnsEnabled: true\n        SubnetIds:\n          - !Ref PrivateSubnetA\n        SecurityGroupIds:\n          - !Ref EndpointSecurityGroup\n",
+    "serviceRawFile": "org: orgpavca\napp: todolist\nservice: toDoList\n\nstages:\n  default:\n    params:\n      tableName: \"users-table-${sls:stage}\"\n\nprovider:\n  endpointType: PRIVATE\n  name: aws\n  runtime: python3.12\n  region: eu-west-3\n\n  apiGateway:\n    resourcePolicy:\n      - Effect: Allow\n        Principal: \"*\"\n        Action: execute-api:Invoke\n        Resource: execute-api:/*\n        Condition:\n          StringEquals:\n            aws:SourceVpce: !Ref ExecuteApiEndpoint\n\n  iam:\n    role:\n      statements:\n        - Effect: Allow\n          Action:\n            - dynamodb:Query\n            - dynamodb:Scan\n            - dynamodb:GetItem\n            - dynamodb:PutItem\n            - dynamodb:UpdateItem\n            - dynamodb:DeleteItem\n          Resource:\n            - Fn::GetAtt: [UsersTable, Arn]\n        - Effect: Allow\n          Action:\n            - sqs:SendMessage\n          Resource:\n            - Fn::GetAtt: [MyQueue, Arn]\n  environment:\n    USERS_TABLE: ${param:tableName}\n    QUEUE_URL: !Ref MyQueue\n\nfunctions:\n  producer:\n    handler: producer.handler # required, handler set in AWS Lambda\n    name: ${sls:stage}-Producer # optional, Deployed Lambda name\n    description: Push in queue\n    runtime: python3.11 # optional overwrite, default is provider runtime\n    memorySize: 512 # optional, in MB, default is 1024\n    timeout: 10 # optional, in seconds, default is 6\n    tracing: PassThrough # optional, overwrite, can be 'Active' or 'PassThrough'\n    vpc:\n      securityGroupIds:\n        - !Ref InstanceSecurityGroup\n      subnetIds:\n        - !Ref PrivateSubnetA\n    events:\n      - http:\n          path: /tasks\n          method: post\n\nresources:\n  Parameters:\n    VpcCidr:\n      Type: String\n      Default: 10.0.0.0/16\n    PrivateSubnetCidr:\n      Type: String\n      Default: 10.0.1.0/24\n    PrivateSubnetCidrB:\n      Type: String\n      Default: 10.0.2.0/24\n    InstanceType:\n      Type: String\n      Default: t3.micro\n      AllowedValues: [t3.micro, t3.small, t3.medium]\n      Description: EC2 type\n    LatestAmiId:\n      Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>\n      Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64\n\n\n  Resources:\n\n    Vpc:\n      Type: AWS::EC2::VPC\n      Properties:\n        CidrBlock: !Ref VpcCidr\n        EnableDnsSupport: true\n        EnableDnsHostnames: true\n        Tags:\n          - Key: Name\n            Value: !Sub \"${AWS::StackName}-vpc\"\n\n    PrivateSubnetA:\n      Type: AWS::EC2::Subnet\n      Properties:\n        VpcId: !Ref Vpc\n        CidrBlock: !Ref PrivateSubnetCidr\n        AvailabilityZone: eu-west-3a\n        MapPublicIpOnLaunch: false\n        Tags:\n          - Key: Name\n            Value: !Sub \"subnet-A\"\n\n    PrivateSubnetB:\n      Type: AWS::EC2::Subnet\n      Properties:\n        VpcId: !Ref Vpc\n        CidrBlock: !Ref PrivateSubnetCidrB\n        AvailabilityZone: eu-west-3b\n        MapPublicIpOnLaunch: false\n        Tags:\n          - Key: Name\n            Value: !Sub \"subnet-B\"\n\n    MyQueue:\n      Type: AWS::SQS::Queue\n      Properties:\n        QueueName: todolist-queue-${sls:stage}\n        VisibilityTimeout: 30\n\n\n    UsersTable:\n      Type: AWS::DynamoDB::Table\n      Properties:\n        AttributeDefinitions:\n          - AttributeName: userId\n            AttributeType: S\n        KeySchema:\n          - AttributeName: userId\n            KeyType: HASH\n        ProvisionedThroughput:\n          ReadCapacityUnits: 1\n          WriteCapacityUnits: 1\n        TableName: ${param:tableName}\n\n    SqsEndpoint:\n      Type: AWS::EC2::VPCEndpoint\n      Properties:\n        VpcId: !Ref Vpc\n        ServiceName: !Sub \"com.amazonaws.${AWS::Region}.sqs\"\n        VpcEndpointType: Interface\n        PrivateDnsEnabled: true\n        SubnetIds:\n          - !Ref PrivateSubnetA\n        SecurityGroupIds:\n          - !Ref EndpointSecurityGroup\n\n    EndpointSecurityGroup:\n      Type: AWS::EC2::SecurityGroup\n      Properties:\n        GroupDescription: HTTPS de la Lambda catre endpoint\n        VpcId: !Ref Vpc\n        SecurityGroupIngress:\n          - IpProtocol: tcp\n            FromPort: 443\n            ToPort: 443\n            SourceSecurityGroupId: !Ref InstanceSecurityGroup\n\n    ExecuteApiEndpoint:\n      Type: AWS::EC2::VPCEndpoint\n      Properties:\n        VpcId: !Ref Vpc\n        ServiceName: !Sub \"com.amazonaws.${AWS::Region}.execute-api\"\n        VpcEndpointType: Interface\n        PrivateDnsEnabled: true\n        SubnetIds:\n          - !Ref PrivateSubnetA\n        SecurityGroupIds:\n          - !Ref EndpointSecurityGroup\n\n#------------------Instance for testing-----------------\n    Eice:\n      Type: AWS::EC2::InstanceConnectEndpoint\n      Properties:\n        SubnetId: !Ref PrivateSubnetA\n        SecurityGroupIds:\n          - !Ref InstanceSecurityGroup\n        PreserveClientIp: false\n        Tags:\n          - Key: Name\n            Value: !Sub \"${AWS::StackName}-eice\"\n\n    InstanceA:\n      Type: AWS::EC2::Instance\n      Properties:\n        InstanceType: !Ref InstanceType\n        ImageId: !Ref LatestAmiId\n        SubnetId: !Ref PrivateSubnetA\n        # KeyName: !Ref KeyPair\n        SecurityGroupIds:\n          - !Ref InstanceSecurityGroup\n        Tags:\n          - Key: Name\n            Value: !Sub \"Node-A\"\n\n    InstanceSecurityGroup:\n      Type: AWS::EC2::SecurityGroup\n      Properties:\n        GroupDescription: SSH - allow\n        VpcId: !Ref Vpc\n        SecurityGroupIngress:\n          - IpProtocol: tcp\n            FromPort: 22\n            ToPort: 22\n            CidrIp: !Ref VpcCidr\n            Description: SSH din EICE\n        Tags:\n          - Key: Name\n            Value: !Sub \"${AWS::StackName}-instance-sg\"\n\n#------------------Instance for testing-----------------\n",
     "command": [
       "deploy"
     ],
@@ -1555,8 +1783,8 @@
     "serviceProviderAwsCfStackName": "toDoList-staging",
     "serviceProviderAwsCfStackId": "arn:aws:cloudformation:eu-west-3:368287211169:stack/toDoList-staging/ec6f8920-7ac3-11f1-bc86-06b0d08a28bb",
     "serviceProviderAwsCfStackCreated": "2026-07-08T11:55:32.988Z",
-    "serviceProviderAwsCfStackUpdated": "2026-07-08T12:45:59.592Z",
-    "serviceProviderAwsCfStackStatus": "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS",
+    "serviceProviderAwsCfStackUpdated": "2026-07-08T12:53:01.279Z",
+    "serviceProviderAwsCfStackStatus": "UPDATE_COMPLETE",
     "serviceProviderAwsCfStackOutputs": [
       {
         "OutputKey": "ProducerLambdaFunctionQualifiedArn",
@@ -1565,22 +1793,664 @@
         "ExportName": "sls-toDoList-staging-ProducerLambdaFunctionQualifiedArn"
       },
       {
-        "OutputKey": "HttpApiId",
-        "OutputValue": "wngq8qhli7",
-        "Description": "Id of the HTTP API",
-        "ExportName": "sls-toDoList-staging-HttpApiId"
+        "OutputKey": "ServiceEndpoint",
+        "OutputValue": "https://40ud95a9r3.execute-api.eu-west-3.amazonaws.com/staging",
+        "Description": "URL of the service endpoint",
+        "ExportName": "sls-toDoList-staging-ServiceEndpoint"
       },
       {
         "OutputKey": "ServerlessDeploymentBucketName",
         "OutputValue": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
         "ExportName": "sls-toDoList-staging-ServerlessDeploymentBucketName"
-      },
-      {
-        "OutputKey": "HttpApiUrl",
-        "OutputValue": "https://wngq8qhli7.execute-api.eu-west-3.amazonaws.com",
-        "Description": "URL of the HTTP API",
-        "ExportName": "sls-toDoList-staging-HttpApiUrl"
       }
-    ]
+    ],
+    "compiledCloudFormationTemplate": {
+      "AWSTemplateFormatVersion": "2010-09-09",
+      "Description": "The AWS CloudFormation template for this Serverless application",
+      "Resources": {
+        "ProducerLogGroup": {
+          "Type": "AWS::Logs::LogGroup",
+          "Properties": {
+            "LogGroupName": "/aws/lambda/staging-Producer"
+          }
+        },
+        "IamRoleLambdaExecution": {
+          "Type": "AWS::IAM::Role",
+          "Properties": {
+            "AssumeRolePolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "Service": [
+                      "lambda.amazonaws.com"
+                    ]
+                  },
+                  "Action": [
+                    "sts:AssumeRole"
+                  ]
+                }
+              ]
+            },
+            "Policies": [
+              {
+                "PolicyName": {
+                  "Fn::Join": [
+                    "-",
+                    [
+                      "toDoList",
+                      "staging",
+                      "lambda"
+                    ]
+                  ]
+                },
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "logs:CreateLogStream",
+                        "logs:CreateLogGroup",
+                        "logs:TagResource"
+                      ],
+                      "Resource": [
+                        {
+                          "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-Producer:*"
+                        }
+                      ]
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "logs:PutLogEvents"
+                      ],
+                      "Resource": [
+                        {
+                          "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-Producer:*:*"
+                        }
+                      ]
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "dynamodb:Query",
+                        "dynamodb:Scan",
+                        "dynamodb:GetItem",
+                        "dynamodb:PutItem",
+                        "dynamodb:UpdateItem",
+                        "dynamodb:DeleteItem"
+                      ],
+                      "Resource": [
+                        {
+                          "Fn::GetAtt": [
+                            "UsersTable",
+                            "Arn"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "sqs:SendMessage"
+                      ],
+                      "Resource": [
+                        {
+                          "Fn::GetAtt": [
+                            "MyQueue",
+                            "Arn"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "xray:PutTraceSegments",
+                        "xray:PutTelemetryRecords"
+                      ],
+                      "Resource": [
+                        "*"
+                      ]
+                    }
+                  ]
+                }
+              }
+            ],
+            "Path": "/",
+            "RoleName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "toDoList",
+                  "staging",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  "lambdaRole"
+                ]
+              ]
+            },
+            "ManagedPolicyArns": [
+              {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "ProducerLambdaFunction": {
+          "Type": "AWS::Lambda::Function",
+          "Properties": {
+            "Code": {
+              "S3Bucket": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
+              "S3Key": "serverless/toDoList/staging/1783517642797-2026-07-08T13:34:02.797Z/toDoList.zip"
+            },
+            "Handler": "producer.handler",
+            "Runtime": "python3.11",
+            "FunctionName": "staging-Producer",
+            "MemorySize": 512,
+            "Timeout": 10,
+            "Description": "Push in queue",
+            "TracingConfig": {
+              "Mode": "PassThrough"
+            },
+            "Environment": {
+              "Variables": {
+                "USERS_TABLE": "users-table-staging",
+                "QUEUE_URL": {
+                  "Ref": "MyQueue"
+                }
+              }
+            },
+            "Role": {
+              "Fn::GetAtt": [
+                "IamRoleLambdaExecution",
+                "Arn"
+              ]
+            },
+            "VpcConfig": {
+              "SecurityGroupIds": [
+                {
+                  "Ref": "InstanceSecurityGroup"
+                }
+              ],
+              "SubnetIds": [
+                {
+                  "Ref": "PrivateSubnetA"
+                }
+              ]
+            }
+          },
+          "DependsOn": [
+            "ProducerLogGroup"
+          ]
+        },
+        "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg": {
+          "Type": "AWS::Lambda::Version",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "FunctionName": {
+              "Ref": "ProducerLambdaFunction"
+            },
+            "CodeSha256": "X1mpJ/xgNMEQMqRWKBz161ByRy6o6PnnuakgcaE/X60=",
+            "Description": "Push in queue"
+          }
+        },
+        "ApiGatewayRestApi": {
+          "Type": "AWS::ApiGateway::RestApi",
+          "Properties": {
+            "Name": "staging-toDoList",
+            "EndpointConfiguration": {
+              "Types": [
+                "PRIVATE"
+              ]
+            },
+            "Policy": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": "*",
+                  "Action": [
+                    "execute-api:Invoke"
+                  ],
+                  "Resource": "execute-api:/*",
+                  "Condition": {
+                    "StringEquals": {
+                      "aws:SourceVpce": {
+                        "Ref": "ExecuteApiEndpoint"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "ApiGatewayResourceTasks": {
+          "Type": "AWS::ApiGateway::Resource",
+          "Properties": {
+            "ParentId": {
+              "Fn::GetAtt": [
+                "ApiGatewayRestApi",
+                "RootResourceId"
+              ]
+            },
+            "PathPart": "tasks",
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            }
+          }
+        },
+        "ApiGatewayMethodTasksPost": {
+          "Type": "AWS::ApiGateway::Method",
+          "Properties": {
+            "HttpMethod": "POST",
+            "RequestParameters": {},
+            "ResourceId": {
+              "Ref": "ApiGatewayResourceTasks"
+            },
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            },
+            "ApiKeyRequired": "<REDACTED>",
+            "AuthorizationType": "NONE",
+            "Integration": {
+              "IntegrationHttpMethod": "POST",
+              "Type": "AWS_PROXY",
+              "Uri": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":apigateway:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":lambda:path/2015-03-31/functions/",
+                    {
+                      "Fn::GetAtt": [
+                        "ProducerLambdaFunction",
+                        "Arn"
+                      ]
+                    },
+                    "/invocations"
+                  ]
+                ]
+              }
+            },
+            "MethodResponses": []
+          },
+          "DependsOn": [
+            "ProducerLambdaPermissionApiGateway"
+          ]
+        },
+        "ApiGatewayDeployment1783517639062": {
+          "Type": "AWS::ApiGateway::Deployment",
+          "Properties": {
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            },
+            "StageName": "staging"
+          },
+          "DependsOn": [
+            "ApiGatewayMethodTasksPost"
+          ]
+        },
+        "ProducerLambdaPermissionApiGateway": {
+          "Type": "AWS::Lambda::Permission",
+          "Properties": {
+            "FunctionName": {
+              "Fn::GetAtt": [
+                "ProducerLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Action": "lambda:InvokeFunction",
+            "Principal": "apigateway.amazonaws.com",
+            "SourceArn": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":execute-api:",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ":",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":",
+                  {
+                    "Ref": "ApiGatewayRestApi"
+                  },
+                  "/*/*"
+                ]
+              ]
+            }
+          }
+        },
+        "Vpc": {
+          "Type": "AWS::EC2::VPC",
+          "Properties": {
+            "CidrBlock": {
+              "Ref": "VpcCidr"
+            },
+            "EnableDnsSupport": true,
+            "EnableDnsHostnames": true,
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": {
+                  "Fn::Sub": "${AWS::StackName}-vpc"
+                }
+              }
+            ]
+          }
+        },
+        "PrivateSubnetA": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "VpcId": {
+              "Ref": "Vpc"
+            },
+            "CidrBlock": {
+              "Ref": "PrivateSubnetCidr"
+            },
+            "AvailabilityZone": "eu-west-3a",
+            "MapPublicIpOnLaunch": false,
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": {
+                  "Fn::Sub": "subnet-A"
+                }
+              }
+            ]
+          }
+        },
+        "PrivateSubnetB": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "VpcId": {
+              "Ref": "Vpc"
+            },
+            "CidrBlock": {
+              "Ref": "PrivateSubnetCidrB"
+            },
+            "AvailabilityZone": "eu-west-3b",
+            "MapPublicIpOnLaunch": false,
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": {
+                  "Fn::Sub": "subnet-B"
+                }
+              }
+            ]
+          }
+        },
+        "MyQueue": {
+          "Type": "AWS::SQS::Queue",
+          "Properties": {
+            "QueueName": "todolist-queue-staging",
+            "VisibilityTimeout": 30
+          }
+        },
+        "UsersTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "userId",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "userId",
+                "KeyType": "HASH"
+              }
+            ],
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": 1,
+              "WriteCapacityUnits": 1
+            },
+            "TableName": "users-table-staging"
+          }
+        },
+        "SqsEndpoint": {
+          "Type": "AWS::EC2::VPCEndpoint",
+          "Properties": {
+            "VpcId": {
+              "Ref": "Vpc"
+            },
+            "ServiceName": {
+              "Fn::Sub": "com.amazonaws.${AWS::Region}.sqs"
+            },
+            "VpcEndpointType": "Interface",
+            "PrivateDnsEnabled": true,
+            "SubnetIds": [
+              {
+                "Ref": "PrivateSubnetA"
+              }
+            ],
+            "SecurityGroupIds": [
+              {
+                "Ref": "EndpointSecurityGroup"
+              }
+            ]
+          }
+        },
+        "EndpointSecurityGroup": {
+          "Type": "AWS::EC2::SecurityGroup",
+          "Properties": {
+            "GroupDescription": "HTTPS de la Lambda catre endpoint",
+            "VpcId": {
+              "Ref": "Vpc"
+            },
+            "SecurityGroupIngress": [
+              {
+                "IpProtocol": "tcp",
+                "FromPort": 443,
+                "ToPort": 443,
+                "SourceSecurityGroupId": {
+                  "Ref": "InstanceSecurityGroup"
+                }
+              }
+            ]
+          }
+        },
+        "ExecuteApiEndpoint": {
+          "Type": "AWS::EC2::VPCEndpoint",
+          "Properties": {
+            "VpcId": {
+              "Ref": "Vpc"
+            },
+            "ServiceName": {
+              "Fn::Sub": "com.amazonaws.${AWS::Region}.execute-api"
+            },
+            "VpcEndpointType": "Interface",
+            "PrivateDnsEnabled": true,
+            "SubnetIds": [
+              {
+                "Ref": "PrivateSubnetA"
+              }
+            ],
+            "SecurityGroupIds": [
+              {
+                "Ref": "EndpointSecurityGroup"
+              }
+            ]
+          }
+        },
+        "Eice": {
+          "Type": "AWS::EC2::InstanceConnectEndpoint",
+          "Properties": {
+            "SubnetId": {
+              "Ref": "PrivateSubnetA"
+            },
+            "SecurityGroupIds": [
+              {
+                "Ref": "InstanceSecurityGroup"
+              }
+            ],
+            "PreserveClientIp": false,
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": {
+                  "Fn::Sub": "${AWS::StackName}-eice"
+                }
+              }
+            ]
+          }
+        },
+        "InstanceA": {
+          "Type": "AWS::EC2::Instance",
+          "Properties": {
+            "InstanceType": {
+              "Ref": "InstanceType"
+            },
+            "ImageId": {
+              "Ref": "LatestAmiId"
+            },
+            "SubnetId": {
+              "Ref": "PrivateSubnetA"
+            },
+            "SecurityGroupIds": [
+              {
+                "Ref": "InstanceSecurityGroup"
+              }
+            ],
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": {
+                  "Fn::Sub": "Node-A"
+                }
+              }
+            ]
+          }
+        },
+        "InstanceSecurityGroup": {
+          "Type": "AWS::EC2::SecurityGroup",
+          "Properties": {
+            "GroupDescription": "SSH - allow",
+            "VpcId": {
+              "Ref": "Vpc"
+            },
+            "SecurityGroupIngress": [
+              {
+                "IpProtocol": "tcp",
+                "FromPort": 22,
+                "ToPort": 22,
+                "CidrIp": {
+                  "Ref": "VpcCidr"
+                },
+                "Description": "SSH din EICE"
+              }
+            ],
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": {
+                  "Fn::Sub": "${AWS::StackName}-instance-sg"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "Outputs": {
+        "ServerlessDeploymentBucketName": {
+          "Value": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
+          "Export": {
+            "Name": "sls-toDoList-staging-ServerlessDeploymentBucketName"
+          }
+        },
+        "ProducerLambdaFunctionQualifiedArn": {
+          "Description": "Current Lambda function version",
+          "Value": {
+            "Ref": "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg"
+          },
+          "Export": {
+            "Name": "sls-toDoList-staging-ProducerLambdaFunctionQualifiedArn"
+          }
+        },
+        "ServiceEndpoint": {
+          "Description": "URL of the service endpoint",
+          "Value": {
+            "Fn::Join": [
+              "",
+              [
+                "https://",
+                {
+                  "Ref": "ApiGatewayRestApi"
+                },
+                ".execute-api.",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ".",
+                {
+                  "Ref": "AWS::URLSuffix"
+                },
+                "/staging"
+              ]
+            ]
+          },
+          "Export": {
+            "Name": "sls-toDoList-staging-ServiceEndpoint"
+          }
+        }
+      },
+      "Parameters": {
+        "VpcCidr": {
+          "Type": "String",
+          "Default": "10.0.0.0/16"
+        },
+        "PrivateSubnetCidr": {
+          "Type": "String",
+          "Default": "10.0.1.0/24"
+        },
+        "PrivateSubnetCidrB": {
+          "Type": "String",
+          "Default": "10.0.2.0/24"
+        },
+        "InstanceType": {
+          "Type": "String",
+          "Default": "t3.micro",
+          "AllowedValues": [
+            "t3.micro",
+            "t3.small",
+            "t3.medium"
+          ],
+          "Description": "EC2 type"
+        },
+        "LatestAmiId": {
+          "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+          "Default": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+        }
+      }
+    }
   }
 }
