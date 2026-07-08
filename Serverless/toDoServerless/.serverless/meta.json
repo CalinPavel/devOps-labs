@@ -73,6 +73,22 @@
                     ]
                   }
                 ]
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "sqs:ReceiveMessage",
+                  "sqs:DeleteMessage",
+                  "sqs:GetQueueAttributes"
+                ],
+                "Resource": [
+                  {
+                    "Fn::GetAtt": [
+                      "MyQueue",
+                      "Arn"
+                    ]
+                  }
+                ]
               }
             ]
           }
@@ -93,6 +109,12 @@
               "Type": "AWS::Logs::LogGroup",
               "Properties": {
                 "LogGroupName": "/aws/lambda/staging-Producer"
+              }
+            },
+            "ConsumerLogGroup": {
+              "Type": "AWS::Logs::LogGroup",
+              "Properties": {
+                "LogGroupName": "/aws/lambda/staging-consumer"
               }
             },
             "IamRoleLambdaExecution": {
@@ -139,6 +161,9 @@
                           "Resource": [
                             {
                               "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-Producer:*"
+                            },
+                            {
+                              "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-consumer:*"
                             }
                           ]
                         },
@@ -150,6 +175,9 @@
                           "Resource": [
                             {
                               "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-Producer:*:*"
+                            },
+                            {
+                              "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-consumer:*:*"
                             }
                           ]
                         },
@@ -189,11 +217,43 @@
                         {
                           "Effect": "Allow",
                           "Action": [
+                            "sqs:ReceiveMessage",
+                            "sqs:DeleteMessage",
+                            "sqs:GetQueueAttributes"
+                          ],
+                          "Resource": [
+                            {
+                              "Fn::GetAtt": [
+                                "MyQueue",
+                                "Arn"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "Effect": "Allow",
+                          "Action": [
                             "xray:PutTraceSegments",
                             "xray:PutTelemetryRecords"
                           ],
                           "Resource": [
                             "*"
+                          ]
+                        },
+                        {
+                          "Effect": "Allow",
+                          "Action": [
+                            "sqs:ReceiveMessage",
+                            "sqs:DeleteMessage",
+                            "sqs:GetQueueAttributes"
+                          ],
+                          "Resource": [
+                            {
+                              "Fn::GetAtt": [
+                                "MyQueue",
+                                "Arn"
+                              ]
+                            }
                           ]
                         }
                       ]
@@ -235,7 +295,7 @@
               "Properties": {
                 "Code": {
                   "S3Bucket": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
-                  "S3Key": "serverless/toDoList/staging/1783517642797-2026-07-08T13:34:02.797Z/toDoList.zip"
+                  "S3Key": "serverless/toDoList/staging/1783519041037-2026-07-08T13:57:21.037Z/toDoList.zip"
                 },
                 "Handler": "producer.handler",
                 "Runtime": "python3.11",
@@ -277,15 +337,73 @@
                 "ProducerLogGroup"
               ]
             },
-            "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg": {
+            "ConsumerLambdaFunction": {
+              "Type": "AWS::Lambda::Function",
+              "Properties": {
+                "Code": {
+                  "S3Bucket": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
+                  "S3Key": "serverless/toDoList/staging/1783519041037-2026-07-08T13:57:21.037Z/toDoList.zip"
+                },
+                "Handler": "consumer.handler",
+                "Runtime": "python3.11",
+                "FunctionName": "staging-consumer",
+                "MemorySize": 512,
+                "Timeout": 10,
+                "Description": "Consume from queue",
+                "TracingConfig": {
+                  "Mode": "PassThrough"
+                },
+                "Environment": {
+                  "Variables": {
+                    "USERS_TABLE": "users-table-staging",
+                    "QUEUE_URL": {
+                      "Ref": "MyQueue"
+                    }
+                  }
+                },
+                "Role": {
+                  "Fn::GetAtt": [
+                    "IamRoleLambdaExecution",
+                    "Arn"
+                  ]
+                },
+                "VpcConfig": {
+                  "SecurityGroupIds": [
+                    {
+                      "Ref": "InstanceSecurityGroup"
+                    }
+                  ],
+                  "SubnetIds": [
+                    {
+                      "Ref": "PrivateSubnetA"
+                    }
+                  ]
+                }
+              },
+              "DependsOn": [
+                "ConsumerLogGroup"
+              ]
+            },
+            "ProducerLambdaVersionizwHJ7lMc78t3AfnMTn9Mit2JjbDamQrHQFPiF1FHRw": {
               "Type": "AWS::Lambda::Version",
               "DeletionPolicy": "Retain",
               "Properties": {
                 "FunctionName": {
                   "Ref": "ProducerLambdaFunction"
                 },
-                "CodeSha256": "X1mpJ/xgNMEQMqRWKBz161ByRy6o6PnnuakgcaE/X60=",
+                "CodeSha256": "apiYmyG+xjHQ3HY33E9edMmUq7Q2BSQvEcDqvPkF7sU=",
                 "Description": "Push in queue"
+              }
+            },
+            "ConsumerLambdaVersioncYjIY1I2ASSQxEg5DiB7lBnpYXVXF17EN3uJQ7A": {
+              "Type": "AWS::Lambda::Version",
+              "DeletionPolicy": "Retain",
+              "Properties": {
+                "FunctionName": {
+                  "Ref": "ConsumerLambdaFunction"
+                },
+                "CodeSha256": "apiYmyG+xjHQ3HY33E9edMmUq7Q2BSQvEcDqvPkF7sU=",
+                "Description": "Consume from queue"
               }
             },
             "ApiGatewayRestApi": {
@@ -380,7 +498,7 @@
                 "ProducerLambdaPermissionApiGateway"
               ]
             },
-            "ApiGatewayDeployment1783517639062": {
+            "ApiGatewayDeployment1783519037473": {
               "Type": "AWS::ApiGateway::Deployment",
               "Properties": {
                 "RestApiId": {
@@ -427,6 +545,31 @@
                     ]
                   ]
                 }
+              }
+            },
+            "ConsumerEventSourceMappingSQSMyQueue": {
+              "Type": "AWS::Lambda::EventSourceMapping",
+              "DependsOn": [
+                "IamRoleLambdaExecution"
+              ],
+              "Properties": {
+                "BatchSize": 1,
+                "EventSourceArn": {
+                  "Fn::GetAtt": [
+                    "MyQueue",
+                    "Arn"
+                  ]
+                },
+                "FunctionName": {
+                  "Fn::GetAtt": [
+                    "ConsumerLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "Enabled": true,
+                "FunctionResponseTypes": [
+                  "ReportBatchItemFailures"
+                ]
               }
             },
             "Vpc": {
@@ -671,10 +814,19 @@
             "ProducerLambdaFunctionQualifiedArn": {
               "Description": "Current Lambda function version",
               "Value": {
-                "Ref": "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg"
+                "Ref": "ProducerLambdaVersionizwHJ7lMc78t3AfnMTn9Mit2JjbDamQrHQFPiF1FHRw"
               },
               "Export": {
                 "Name": "sls-toDoList-staging-ProducerLambdaFunctionQualifiedArn"
+              }
+            },
+            "ConsumerLambdaFunctionQualifiedArn": {
+              "Description": "Current Lambda function version",
+              "Value": {
+                "Ref": "ConsumerLambdaVersioncYjIY1I2ASSQxEg5DiB7lBnpYXVXF17EN3uJQ7A"
+              },
+              "Export": {
+                "Name": "sls-toDoList-staging-ConsumerLambdaFunctionQualifiedArn"
               }
             },
             "ServiceEndpoint": {
@@ -767,7 +919,45 @@
           ],
           "package": {},
           "memory": 512,
-          "versionLogicalId": "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg"
+          "versionLogicalId": "ProducerLambdaVersionizwHJ7lMc78t3AfnMTn9Mit2JjbDamQrHQFPiF1FHRw"
+        },
+        "consumer": {
+          "handler": "consumer.handler",
+          "name": "staging-consumer",
+          "description": "Consume from queue",
+          "runtime": "python3.11",
+          "memorySize": 512,
+          "timeout": 10,
+          "tracing": "PassThrough",
+          "vpc": {
+            "securityGroupIds": [
+              {
+                "Ref": "InstanceSecurityGroup"
+              }
+            ],
+            "subnetIds": [
+              {
+                "Ref": "PrivateSubnetA"
+              }
+            ]
+          },
+          "events": [
+            {
+              "sqs": {
+                "arn": {
+                  "Fn::GetAtt": [
+                    "MyQueue",
+                    "Arn"
+                  ]
+                },
+                "batchSize": 1,
+                "functionResponseType": "ReportBatchItemFailures"
+              }
+            }
+          ],
+          "package": {},
+          "memory": 512,
+          "versionLogicalId": "ConsumerLambdaVersioncYjIY1I2ASSQxEg5DiB7lBnpYXVXF17EN3uJQ7A"
         }
       },
       "resources": {
@@ -1094,6 +1284,22 @@
                   ]
                 }
               ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "sqs:ReceiveMessage",
+                "sqs:DeleteMessage",
+                "sqs:GetQueueAttributes"
+              ],
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "MyQueue",
+                    "Arn"
+                  ]
+                }
+              ]
             }
           ]
         }
@@ -1114,6 +1320,12 @@
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
               "LogGroupName": "/aws/lambda/staging-Producer"
+            }
+          },
+          "ConsumerLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/staging-consumer"
             }
           },
           "IamRoleLambdaExecution": {
@@ -1160,6 +1372,9 @@
                         "Resource": [
                           {
                             "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-Producer:*"
+                          },
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-consumer:*"
                           }
                         ]
                       },
@@ -1171,6 +1386,9 @@
                         "Resource": [
                           {
                             "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-Producer:*:*"
+                          },
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-consumer:*:*"
                           }
                         ]
                       },
@@ -1210,11 +1428,43 @@
                       {
                         "Effect": "Allow",
                         "Action": [
+                          "sqs:ReceiveMessage",
+                          "sqs:DeleteMessage",
+                          "sqs:GetQueueAttributes"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::GetAtt": [
+                              "MyQueue",
+                              "Arn"
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
                           "xray:PutTraceSegments",
                           "xray:PutTelemetryRecords"
                         ],
                         "Resource": [
                           "*"
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "sqs:ReceiveMessage",
+                          "sqs:DeleteMessage",
+                          "sqs:GetQueueAttributes"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::GetAtt": [
+                              "MyQueue",
+                              "Arn"
+                            ]
+                          }
                         ]
                       }
                     ]
@@ -1256,7 +1506,7 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
-                "S3Key": "serverless/toDoList/staging/1783517642797-2026-07-08T13:34:02.797Z/toDoList.zip"
+                "S3Key": "serverless/toDoList/staging/1783519041037-2026-07-08T13:57:21.037Z/toDoList.zip"
               },
               "Handler": "producer.handler",
               "Runtime": "python3.11",
@@ -1298,15 +1548,73 @@
               "ProducerLogGroup"
             ]
           },
-          "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg": {
+          "ConsumerLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
+                "S3Key": "serverless/toDoList/staging/1783519041037-2026-07-08T13:57:21.037Z/toDoList.zip"
+              },
+              "Handler": "consumer.handler",
+              "Runtime": "python3.11",
+              "FunctionName": "staging-consumer",
+              "MemorySize": 512,
+              "Timeout": 10,
+              "Description": "Consume from queue",
+              "TracingConfig": {
+                "Mode": "PassThrough"
+              },
+              "Environment": {
+                "Variables": {
+                  "USERS_TABLE": "users-table-staging",
+                  "QUEUE_URL": {
+                    "Ref": "MyQueue"
+                  }
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              },
+              "VpcConfig": {
+                "SecurityGroupIds": [
+                  {
+                    "Ref": "InstanceSecurityGroup"
+                  }
+                ],
+                "SubnetIds": [
+                  {
+                    "Ref": "PrivateSubnetA"
+                  }
+                ]
+              }
+            },
+            "DependsOn": [
+              "ConsumerLogGroup"
+            ]
+          },
+          "ProducerLambdaVersionizwHJ7lMc78t3AfnMTn9Mit2JjbDamQrHQFPiF1FHRw": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ProducerLambdaFunction"
               },
-              "CodeSha256": "X1mpJ/xgNMEQMqRWKBz161ByRy6o6PnnuakgcaE/X60=",
+              "CodeSha256": "apiYmyG+xjHQ3HY33E9edMmUq7Q2BSQvEcDqvPkF7sU=",
               "Description": "Push in queue"
+            }
+          },
+          "ConsumerLambdaVersioncYjIY1I2ASSQxEg5DiB7lBnpYXVXF17EN3uJQ7A": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "ConsumerLambdaFunction"
+              },
+              "CodeSha256": "apiYmyG+xjHQ3HY33E9edMmUq7Q2BSQvEcDqvPkF7sU=",
+              "Description": "Consume from queue"
             }
           },
           "ApiGatewayRestApi": {
@@ -1401,7 +1709,7 @@
               "ProducerLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1783517639062": {
+          "ApiGatewayDeployment1783519037473": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -1448,6 +1756,31 @@
                   ]
                 ]
               }
+            }
+          },
+          "ConsumerEventSourceMappingSQSMyQueue": {
+            "Type": "AWS::Lambda::EventSourceMapping",
+            "DependsOn": [
+              "IamRoleLambdaExecution"
+            ],
+            "Properties": {
+              "BatchSize": 1,
+              "EventSourceArn": {
+                "Fn::GetAtt": [
+                  "MyQueue",
+                  "Arn"
+                ]
+              },
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "ConsumerLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Enabled": true,
+              "FunctionResponseTypes": [
+                "ReportBatchItemFailures"
+              ]
             }
           },
           "Vpc": {
@@ -1692,10 +2025,19 @@
           "ProducerLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg"
+              "Ref": "ProducerLambdaVersionizwHJ7lMc78t3AfnMTn9Mit2JjbDamQrHQFPiF1FHRw"
             },
             "Export": {
               "Name": "sls-toDoList-staging-ProducerLambdaFunctionQualifiedArn"
+            }
+          },
+          "ConsumerLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "ConsumerLambdaVersioncYjIY1I2ASSQxEg5DiB7lBnpYXVXF17EN3uJQ7A"
+            },
+            "Export": {
+              "Name": "sls-toDoList-staging-ConsumerLambdaFunctionQualifiedArn"
             }
           },
           "ServiceEndpoint": {
@@ -1768,7 +2110,7 @@
       "serviceProvider": null,
       "instanceParameters": null
     },
-    "serviceRawFile": "org: orgpavca\napp: todolist\nservice: toDoList\n\nstages:\n  default:\n    params:\n      tableName: \"users-table-${sls:stage}\"\n\nprovider:\n  endpointType: PRIVATE\n  name: aws\n  runtime: python3.12\n  region: eu-west-3\n\n  apiGateway:\n    resourcePolicy:\n      - Effect: Allow\n        Principal: \"*\"\n        Action: execute-api:Invoke\n        Resource: execute-api:/*\n        Condition:\n          StringEquals:\n            aws:SourceVpce: !Ref ExecuteApiEndpoint\n\n  iam:\n    role:\n      statements:\n        - Effect: Allow\n          Action:\n            - dynamodb:Query\n            - dynamodb:Scan\n            - dynamodb:GetItem\n            - dynamodb:PutItem\n            - dynamodb:UpdateItem\n            - dynamodb:DeleteItem\n          Resource:\n            - Fn::GetAtt: [UsersTable, Arn]\n        - Effect: Allow\n          Action:\n            - sqs:SendMessage\n          Resource:\n            - Fn::GetAtt: [MyQueue, Arn]\n  environment:\n    USERS_TABLE: ${param:tableName}\n    QUEUE_URL: !Ref MyQueue\n\nfunctions:\n  producer:\n    handler: producer.handler # required, handler set in AWS Lambda\n    name: ${sls:stage}-Producer # optional, Deployed Lambda name\n    description: Push in queue\n    runtime: python3.11 # optional overwrite, default is provider runtime\n    memorySize: 512 # optional, in MB, default is 1024\n    timeout: 10 # optional, in seconds, default is 6\n    tracing: PassThrough # optional, overwrite, can be 'Active' or 'PassThrough'\n    vpc:\n      securityGroupIds:\n        - !Ref InstanceSecurityGroup\n      subnetIds:\n        - !Ref PrivateSubnetA\n    events:\n      - http:\n          path: /tasks\n          method: post\n\nresources:\n  Parameters:\n    VpcCidr:\n      Type: String\n      Default: 10.0.0.0/16\n    PrivateSubnetCidr:\n      Type: String\n      Default: 10.0.1.0/24\n    PrivateSubnetCidrB:\n      Type: String\n      Default: 10.0.2.0/24\n    InstanceType:\n      Type: String\n      Default: t3.micro\n      AllowedValues: [t3.micro, t3.small, t3.medium]\n      Description: EC2 type\n    LatestAmiId:\n      Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>\n      Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64\n\n\n  Resources:\n\n    Vpc:\n      Type: AWS::EC2::VPC\n      Properties:\n        CidrBlock: !Ref VpcCidr\n        EnableDnsSupport: true\n        EnableDnsHostnames: true\n        Tags:\n          - Key: Name\n            Value: !Sub \"${AWS::StackName}-vpc\"\n\n    PrivateSubnetA:\n      Type: AWS::EC2::Subnet\n      Properties:\n        VpcId: !Ref Vpc\n        CidrBlock: !Ref PrivateSubnetCidr\n        AvailabilityZone: eu-west-3a\n        MapPublicIpOnLaunch: false\n        Tags:\n          - Key: Name\n            Value: !Sub \"subnet-A\"\n\n    PrivateSubnetB:\n      Type: AWS::EC2::Subnet\n      Properties:\n        VpcId: !Ref Vpc\n        CidrBlock: !Ref PrivateSubnetCidrB\n        AvailabilityZone: eu-west-3b\n        MapPublicIpOnLaunch: false\n        Tags:\n          - Key: Name\n            Value: !Sub \"subnet-B\"\n\n    MyQueue:\n      Type: AWS::SQS::Queue\n      Properties:\n        QueueName: todolist-queue-${sls:stage}\n        VisibilityTimeout: 30\n\n\n    UsersTable:\n      Type: AWS::DynamoDB::Table\n      Properties:\n        AttributeDefinitions:\n          - AttributeName: userId\n            AttributeType: S\n        KeySchema:\n          - AttributeName: userId\n            KeyType: HASH\n        ProvisionedThroughput:\n          ReadCapacityUnits: 1\n          WriteCapacityUnits: 1\n        TableName: ${param:tableName}\n\n    SqsEndpoint:\n      Type: AWS::EC2::VPCEndpoint\n      Properties:\n        VpcId: !Ref Vpc\n        ServiceName: !Sub \"com.amazonaws.${AWS::Region}.sqs\"\n        VpcEndpointType: Interface\n        PrivateDnsEnabled: true\n        SubnetIds:\n          - !Ref PrivateSubnetA\n        SecurityGroupIds:\n          - !Ref EndpointSecurityGroup\n\n    EndpointSecurityGroup:\n      Type: AWS::EC2::SecurityGroup\n      Properties:\n        GroupDescription: HTTPS de la Lambda catre endpoint\n        VpcId: !Ref Vpc\n        SecurityGroupIngress:\n          - IpProtocol: tcp\n            FromPort: 443\n            ToPort: 443\n            SourceSecurityGroupId: !Ref InstanceSecurityGroup\n\n    ExecuteApiEndpoint:\n      Type: AWS::EC2::VPCEndpoint\n      Properties:\n        VpcId: !Ref Vpc\n        ServiceName: !Sub \"com.amazonaws.${AWS::Region}.execute-api\"\n        VpcEndpointType: Interface\n        PrivateDnsEnabled: true\n        SubnetIds:\n          - !Ref PrivateSubnetA\n        SecurityGroupIds:\n          - !Ref EndpointSecurityGroup\n\n#------------------Instance for testing-----------------\n    Eice:\n      Type: AWS::EC2::InstanceConnectEndpoint\n      Properties:\n        SubnetId: !Ref PrivateSubnetA\n        SecurityGroupIds:\n          - !Ref InstanceSecurityGroup\n        PreserveClientIp: false\n        Tags:\n          - Key: Name\n            Value: !Sub \"${AWS::StackName}-eice\"\n\n    InstanceA:\n      Type: AWS::EC2::Instance\n      Properties:\n        InstanceType: !Ref InstanceType\n        ImageId: !Ref LatestAmiId\n        SubnetId: !Ref PrivateSubnetA\n        # KeyName: !Ref KeyPair\n        SecurityGroupIds:\n          - !Ref InstanceSecurityGroup\n        Tags:\n          - Key: Name\n            Value: !Sub \"Node-A\"\n\n    InstanceSecurityGroup:\n      Type: AWS::EC2::SecurityGroup\n      Properties:\n        GroupDescription: SSH - allow\n        VpcId: !Ref Vpc\n        SecurityGroupIngress:\n          - IpProtocol: tcp\n            FromPort: 22\n            ToPort: 22\n            CidrIp: !Ref VpcCidr\n            Description: SSH din EICE\n        Tags:\n          - Key: Name\n            Value: !Sub \"${AWS::StackName}-instance-sg\"\n\n#------------------Instance for testing-----------------\n",
+    "serviceRawFile": "org: orgpavca\napp: todolist\nservice: toDoList\n\nstages:\n  default:\n    params:\n      tableName: \"users-table-${sls:stage}\"\n\nprovider:\n  endpointType: PRIVATE\n  name: aws\n  runtime: python3.12\n  region: eu-west-3\n\n  apiGateway:\n    resourcePolicy:\n      - Effect: Allow\n        Principal: \"*\"\n        Action: execute-api:Invoke\n        Resource: execute-api:/*\n        Condition:\n          StringEquals:\n            aws:SourceVpce: !Ref ExecuteApiEndpoint\n\n  iam:\n    role:\n      statements:\n        - Effect: Allow\n          Action:\n            - dynamodb:Query\n            - dynamodb:Scan\n            - dynamodb:GetItem\n            - dynamodb:PutItem\n            - dynamodb:UpdateItem\n            - dynamodb:DeleteItem\n          Resource:\n            - Fn::GetAtt: [UsersTable, Arn]\n        - Effect: Allow\n          Action:\n            - sqs:SendMessage\n          Resource:\n            - Fn::GetAtt: [MyQueue, Arn]\n        - Effect: Allow\n          Action:\n            - sqs:ReceiveMessage\n            - sqs:DeleteMessage\n            - sqs:GetQueueAttributes\n          Resource:\n            - Fn::GetAtt: [MyQueue, Arn]\n  environment:\n    USERS_TABLE: ${param:tableName}\n    QUEUE_URL: !Ref MyQueue\n\nfunctions:\n  producer:\n    handler: producer.handler # required, handler set in AWS Lambda\n    name: ${sls:stage}-Producer # optional, Deployed Lambda name\n    description: Push in queue\n    runtime: python3.11 # optional overwrite, default is provider runtime\n    memorySize: 512 # optional, in MB, default is 1024\n    timeout: 10 # optional, in seconds, default is 6\n    tracing: PassThrough # optional, overwrite, can be 'Active' or 'PassThrough'\n    vpc:\n      securityGroupIds:\n        - !Ref InstanceSecurityGroup\n      subnetIds:\n        - !Ref PrivateSubnetA\n    events:\n      - http:\n          path: /tasks\n          method: post\n\n  consumer:\n    handler: consumer.handler # required, handler set in AWS Lambda\n    name: ${sls:stage}-consumer # optional, Deployed Lambda name\n    description: Consume from queue\n    runtime: python3.11 # optional overwrite, default is provider runtime\n    memorySize: 512 # optional, in MB, default is 1024\n    timeout: 10 # optional, in seconds, default is 6\n    tracing: PassThrough # optional, overwrite, can be 'Active' or 'PassThrough'\n    vpc:\n      securityGroupIds:\n        - !Ref InstanceSecurityGroup\n      subnetIds:\n        - !Ref PrivateSubnetA\n    events:\n      - sqs:\n          arn: !GetAtt MyQueue.Arn\n          batchSize: 1               \n          functionResponseType: ReportBatchItemFailures\n\nresources:\n  Parameters:\n    VpcCidr:\n      Type: String\n      Default: 10.0.0.0/16\n    PrivateSubnetCidr:\n      Type: String\n      Default: 10.0.1.0/24\n    PrivateSubnetCidrB:\n      Type: String\n      Default: 10.0.2.0/24\n    InstanceType:\n      Type: String\n      Default: t3.micro\n      AllowedValues: [t3.micro, t3.small, t3.medium]\n      Description: EC2 type\n    LatestAmiId:\n      Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>\n      Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64\n\n\n  Resources:\n\n    Vpc:\n      Type: AWS::EC2::VPC\n      Properties:\n        CidrBlock: !Ref VpcCidr\n        EnableDnsSupport: true\n        EnableDnsHostnames: true\n        Tags:\n          - Key: Name\n            Value: !Sub \"${AWS::StackName}-vpc\"\n\n    PrivateSubnetA:\n      Type: AWS::EC2::Subnet\n      Properties:\n        VpcId: !Ref Vpc\n        CidrBlock: !Ref PrivateSubnetCidr\n        AvailabilityZone: eu-west-3a\n        MapPublicIpOnLaunch: false\n        Tags:\n          - Key: Name\n            Value: !Sub \"subnet-A\"\n\n    PrivateSubnetB:\n      Type: AWS::EC2::Subnet\n      Properties:\n        VpcId: !Ref Vpc\n        CidrBlock: !Ref PrivateSubnetCidrB\n        AvailabilityZone: eu-west-3b\n        MapPublicIpOnLaunch: false\n        Tags:\n          - Key: Name\n            Value: !Sub \"subnet-B\"\n\n    MyQueue:\n      Type: AWS::SQS::Queue\n      Properties:\n        QueueName: todolist-queue-${sls:stage}\n        VisibilityTimeout: 30\n\n\n    UsersTable:\n      Type: AWS::DynamoDB::Table\n      Properties:\n        AttributeDefinitions:\n          - AttributeName: userId\n            AttributeType: S\n        KeySchema:\n          - AttributeName: userId\n            KeyType: HASH\n        ProvisionedThroughput:\n          ReadCapacityUnits: 1\n          WriteCapacityUnits: 1\n        TableName: ${param:tableName}\n\n    SqsEndpoint:\n      Type: AWS::EC2::VPCEndpoint\n      Properties:\n        VpcId: !Ref Vpc\n        ServiceName: !Sub \"com.amazonaws.${AWS::Region}.sqs\"\n        VpcEndpointType: Interface\n        PrivateDnsEnabled: true\n        SubnetIds:\n          - !Ref PrivateSubnetA\n        SecurityGroupIds:\n          - !Ref EndpointSecurityGroup\n\n    EndpointSecurityGroup:\n      Type: AWS::EC2::SecurityGroup\n      Properties:\n        GroupDescription: HTTPS de la Lambda catre endpoint\n        VpcId: !Ref Vpc\n        SecurityGroupIngress:\n          - IpProtocol: tcp\n            FromPort: 443\n            ToPort: 443\n            SourceSecurityGroupId: !Ref InstanceSecurityGroup\n\n    ExecuteApiEndpoint:\n      Type: AWS::EC2::VPCEndpoint\n      Properties:\n        VpcId: !Ref Vpc\n        ServiceName: !Sub \"com.amazonaws.${AWS::Region}.execute-api\"\n        VpcEndpointType: Interface\n        PrivateDnsEnabled: true\n        SubnetIds:\n          - !Ref PrivateSubnetA\n        SecurityGroupIds:\n          - !Ref EndpointSecurityGroup\n\n#------------------Instance for testing-----------------\n    Eice:\n      Type: AWS::EC2::InstanceConnectEndpoint\n      Properties:\n        SubnetId: !Ref PrivateSubnetA\n        SecurityGroupIds:\n          - !Ref InstanceSecurityGroup\n        PreserveClientIp: false\n        Tags:\n          - Key: Name\n            Value: !Sub \"${AWS::StackName}-eice\"\n\n    InstanceA:\n      Type: AWS::EC2::Instance\n      Properties:\n        InstanceType: !Ref InstanceType\n        ImageId: !Ref LatestAmiId\n        SubnetId: !Ref PrivateSubnetA\n        # KeyName: !Ref KeyPair\n        SecurityGroupIds:\n          - !Ref InstanceSecurityGroup\n        Tags:\n          - Key: Name\n            Value: !Sub \"Node-A\"\n\n    InstanceSecurityGroup:\n      Type: AWS::EC2::SecurityGroup\n      Properties:\n        GroupDescription: SSH - allow\n        VpcId: !Ref Vpc\n        SecurityGroupIngress:\n          - IpProtocol: tcp\n            FromPort: 22\n            ToPort: 22\n            CidrIp: !Ref VpcCidr\n            Description: SSH din EICE\n        Tags:\n          - Key: Name\n            Value: !Sub \"${AWS::StackName}-instance-sg\"\n\n#------------------Instance for testing-----------------\n",
     "command": [
       "deploy"
     ],
@@ -1783,12 +2125,12 @@
     "serviceProviderAwsCfStackName": "toDoList-staging",
     "serviceProviderAwsCfStackId": "arn:aws:cloudformation:eu-west-3:368287211169:stack/toDoList-staging/ec6f8920-7ac3-11f1-bc86-06b0d08a28bb",
     "serviceProviderAwsCfStackCreated": "2026-07-08T11:55:32.988Z",
-    "serviceProviderAwsCfStackUpdated": "2026-07-08T12:53:01.279Z",
+    "serviceProviderAwsCfStackUpdated": "2026-07-08T13:34:06.152Z",
     "serviceProviderAwsCfStackStatus": "UPDATE_COMPLETE",
     "serviceProviderAwsCfStackOutputs": [
       {
         "OutputKey": "ProducerLambdaFunctionQualifiedArn",
-        "OutputValue": "arn:aws:lambda:eu-west-3:368287211169:function:staging-Producer:3",
+        "OutputValue": "arn:aws:lambda:eu-west-3:368287211169:function:staging-Producer:4",
         "Description": "Current Lambda function version",
         "ExportName": "sls-toDoList-staging-ProducerLambdaFunctionQualifiedArn"
       },
@@ -1812,6 +2154,12 @@
           "Type": "AWS::Logs::LogGroup",
           "Properties": {
             "LogGroupName": "/aws/lambda/staging-Producer"
+          }
+        },
+        "ConsumerLogGroup": {
+          "Type": "AWS::Logs::LogGroup",
+          "Properties": {
+            "LogGroupName": "/aws/lambda/staging-consumer"
           }
         },
         "IamRoleLambdaExecution": {
@@ -1858,6 +2206,9 @@
                       "Resource": [
                         {
                           "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-Producer:*"
+                        },
+                        {
+                          "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-consumer:*"
                         }
                       ]
                     },
@@ -1869,6 +2220,9 @@
                       "Resource": [
                         {
                           "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-Producer:*:*"
+                        },
+                        {
+                          "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/staging-consumer:*:*"
                         }
                       ]
                     },
@@ -1908,11 +2262,43 @@
                     {
                       "Effect": "Allow",
                       "Action": [
+                        "sqs:ReceiveMessage",
+                        "sqs:DeleteMessage",
+                        "sqs:GetQueueAttributes"
+                      ],
+                      "Resource": [
+                        {
+                          "Fn::GetAtt": [
+                            "MyQueue",
+                            "Arn"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
                         "xray:PutTraceSegments",
                         "xray:PutTelemetryRecords"
                       ],
                       "Resource": [
                         "*"
+                      ]
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "sqs:ReceiveMessage",
+                        "sqs:DeleteMessage",
+                        "sqs:GetQueueAttributes"
+                      ],
+                      "Resource": [
+                        {
+                          "Fn::GetAtt": [
+                            "MyQueue",
+                            "Arn"
+                          ]
+                        }
                       ]
                     }
                   ]
@@ -1954,7 +2340,7 @@
           "Properties": {
             "Code": {
               "S3Bucket": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
-              "S3Key": "serverless/toDoList/staging/1783517642797-2026-07-08T13:34:02.797Z/toDoList.zip"
+              "S3Key": "serverless/toDoList/staging/1783519041037-2026-07-08T13:57:21.037Z/toDoList.zip"
             },
             "Handler": "producer.handler",
             "Runtime": "python3.11",
@@ -1996,15 +2382,73 @@
             "ProducerLogGroup"
           ]
         },
-        "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg": {
+        "ConsumerLambdaFunction": {
+          "Type": "AWS::Lambda::Function",
+          "Properties": {
+            "Code": {
+              "S3Bucket": "serverless-framework-deployments-eu-west-3-190a04ca-edc2",
+              "S3Key": "serverless/toDoList/staging/1783519041037-2026-07-08T13:57:21.037Z/toDoList.zip"
+            },
+            "Handler": "consumer.handler",
+            "Runtime": "python3.11",
+            "FunctionName": "staging-consumer",
+            "MemorySize": 512,
+            "Timeout": 10,
+            "Description": "Consume from queue",
+            "TracingConfig": {
+              "Mode": "PassThrough"
+            },
+            "Environment": {
+              "Variables": {
+                "USERS_TABLE": "users-table-staging",
+                "QUEUE_URL": {
+                  "Ref": "MyQueue"
+                }
+              }
+            },
+            "Role": {
+              "Fn::GetAtt": [
+                "IamRoleLambdaExecution",
+                "Arn"
+              ]
+            },
+            "VpcConfig": {
+              "SecurityGroupIds": [
+                {
+                  "Ref": "InstanceSecurityGroup"
+                }
+              ],
+              "SubnetIds": [
+                {
+                  "Ref": "PrivateSubnetA"
+                }
+              ]
+            }
+          },
+          "DependsOn": [
+            "ConsumerLogGroup"
+          ]
+        },
+        "ProducerLambdaVersionizwHJ7lMc78t3AfnMTn9Mit2JjbDamQrHQFPiF1FHRw": {
           "Type": "AWS::Lambda::Version",
           "DeletionPolicy": "Retain",
           "Properties": {
             "FunctionName": {
               "Ref": "ProducerLambdaFunction"
             },
-            "CodeSha256": "X1mpJ/xgNMEQMqRWKBz161ByRy6o6PnnuakgcaE/X60=",
+            "CodeSha256": "apiYmyG+xjHQ3HY33E9edMmUq7Q2BSQvEcDqvPkF7sU=",
             "Description": "Push in queue"
+          }
+        },
+        "ConsumerLambdaVersioncYjIY1I2ASSQxEg5DiB7lBnpYXVXF17EN3uJQ7A": {
+          "Type": "AWS::Lambda::Version",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "FunctionName": {
+              "Ref": "ConsumerLambdaFunction"
+            },
+            "CodeSha256": "apiYmyG+xjHQ3HY33E9edMmUq7Q2BSQvEcDqvPkF7sU=",
+            "Description": "Consume from queue"
           }
         },
         "ApiGatewayRestApi": {
@@ -2099,7 +2543,7 @@
             "ProducerLambdaPermissionApiGateway"
           ]
         },
-        "ApiGatewayDeployment1783517639062": {
+        "ApiGatewayDeployment1783519037473": {
           "Type": "AWS::ApiGateway::Deployment",
           "Properties": {
             "RestApiId": {
@@ -2146,6 +2590,31 @@
                 ]
               ]
             }
+          }
+        },
+        "ConsumerEventSourceMappingSQSMyQueue": {
+          "Type": "AWS::Lambda::EventSourceMapping",
+          "DependsOn": [
+            "IamRoleLambdaExecution"
+          ],
+          "Properties": {
+            "BatchSize": 1,
+            "EventSourceArn": {
+              "Fn::GetAtt": [
+                "MyQueue",
+                "Arn"
+              ]
+            },
+            "FunctionName": {
+              "Fn::GetAtt": [
+                "ConsumerLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Enabled": true,
+            "FunctionResponseTypes": [
+              "ReportBatchItemFailures"
+            ]
           }
         },
         "Vpc": {
@@ -2390,10 +2859,19 @@
         "ProducerLambdaFunctionQualifiedArn": {
           "Description": "Current Lambda function version",
           "Value": {
-            "Ref": "ProducerLambdaVersionP37A5QLTIbo17TICNnhrqeNjB3VI8AFwEogriPUJg"
+            "Ref": "ProducerLambdaVersionizwHJ7lMc78t3AfnMTn9Mit2JjbDamQrHQFPiF1FHRw"
           },
           "Export": {
             "Name": "sls-toDoList-staging-ProducerLambdaFunctionQualifiedArn"
+          }
+        },
+        "ConsumerLambdaFunctionQualifiedArn": {
+          "Description": "Current Lambda function version",
+          "Value": {
+            "Ref": "ConsumerLambdaVersioncYjIY1I2ASSQxEg5DiB7lBnpYXVXF17EN3uJQ7A"
+          },
+          "Export": {
+            "Name": "sls-toDoList-staging-ConsumerLambdaFunctionQualifiedArn"
           }
         },
         "ServiceEndpoint": {

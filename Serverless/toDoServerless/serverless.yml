@@ -41,6 +41,13 @@ provider:
             - sqs:SendMessage
           Resource:
             - Fn::GetAtt: [MyQueue, Arn]
+        - Effect: Allow
+          Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+          Resource:
+            - Fn::GetAtt: [MyQueue, Arn]
   environment:
     USERS_TABLE: ${param:tableName}
     QUEUE_URL: !Ref MyQueue
@@ -63,6 +70,25 @@ functions:
       - http:
           path: /tasks
           method: post
+
+  consumer:
+    handler: consumer.handler # required, handler set in AWS Lambda
+    name: ${sls:stage}-consumer # optional, Deployed Lambda name
+    description: Consume from queue
+    runtime: python3.11 # optional overwrite, default is provider runtime
+    memorySize: 512 # optional, in MB, default is 1024
+    timeout: 10 # optional, in seconds, default is 6
+    tracing: PassThrough # optional, overwrite, can be 'Active' or 'PassThrough'
+    vpc:
+      securityGroupIds:
+        - !Ref InstanceSecurityGroup
+      subnetIds:
+        - !Ref PrivateSubnetA
+    events:
+      - sqs:
+          arn: !GetAtt MyQueue.Arn
+          batchSize: 1               
+          functionResponseType: ReportBatchItemFailures
 
 resources:
   Parameters:
