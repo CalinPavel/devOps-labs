@@ -1,0 +1,3 @@
+[submodule "CI-CD/demo"]
+	path = CI-CD/demo
+	url = https://calinpav21@dev.azure.com/calinpav21/demo/_git/demo
