@@ -141,33 +141,6 @@ livenessProbe:
 ### Acces la frontend
 
 ```bash
-# varianta 1: ELB extern
-kubectl get svc web-frontend -n app -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
-
-# varianta 2: port-forward pentru test rapid
 kubectl port-forward svc/web-frontend -n app 8080:80
 # -> http://localhost:8080
 ```
-
----
-
-## 4. Probleme întâlnite și rezolvate
-
-| Problemă | Cauză | Fix |
-|---|---|---|
-| `nil pointer evaluating .Values.sentinel.service.type` | `values.yaml` din chart suprascris în loc de fișier separat | repull chart curat, override-uri într-un fișier extern (`-f redis-values.yaml`) |
-| `no nodes available to schedule` + `unbound pvc must define a storage class` | EKS Auto Mode nu are StorageClass implicit; Redis cerea PVC fără `storageClassName` | `persistence.enabled: false` (sau `storageClass: auto-ebs-sc` dacă vrei persistență) |
-| `azure-vote-front:v1 not found` | Microsoft a șters imaginile `azuredocs` din MCR (august 2025+) | migrare la imagine oficială AWS: `retail-store-sample-ui` |
-| `bitnami/redis:7.4.0-debian-12-r4 not found` | Broadcom a mutat majoritatea imaginilor Bitnami în `bitnamilegacy`, catalogul gratuit fiind restructurat | `repository: bitnamilegacy/redis` + `global.security.allowInsecureImages: true` |
-| `retail-store-sample-ui:v1 not found` | Tag greșit — versiunea corectă e semver, nu `v1` | `tag: "1.0.0"` |
-| Pod killed la ~90s după pornire (liveness) | Probe cu `initialDelaySeconds` prea mic față de boot time-ul Spring Boot (~40s) | `initialDelaySeconds: 100` pe liveness, cu marjă |
-| `port-forward` → `connection refused` pe portul 80 | `targetPort` greșit în Service (80 în loc de 8080, portul real ascultat de container) | `targetPort: 8080` în `values.yaml`, urmat de `helm upgrade` |
-
----
-
-## 5. Lecții cheie
-
-- **Override-urile Helm merg mereu într-un fișier separat**, niciodată peste `values.yaml`-ul original al chart-ului — acesta din urmă documentează toate cheile disponibile și trebuie păstrat intact.
-- **`-target` la Terraform apply** e util pentru debugging pas-cu-pas, dar nu e workflow standard — riscă state parțial inconsistent.
-- **Aplicațiile JVM au boot time semnificativ** — probe-urile implicite (gândite pentru aplicații ușoare) trebuie recalibrate explicit pentru workload-uri Java/Spring Boot.
-- **`targetPort` ≠ `port`** — `port` e ce expune Service-ul extern, `targetPort` trebuie să corespundă exact portului pe care ascultă efectiv containerul.
