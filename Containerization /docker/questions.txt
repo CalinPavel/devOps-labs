@@ -1,0 +1,130 @@
+1.What is a Docker container and how is it different from a virtual machine?
+
+- VM are loading an entire OS
+- container are seprated procceses, cgroups, namespaces and are sharing the host kernel
+
+2.  A - 3
+    B - 2
+    C - 1
+    
+3.  Easy to update OS dependecies
+    Portable/Multiplatform
+    Consistency accross env
+4.Fales, True, Fales
+
+5. Volume is maintained by docker, a mount is a local dir.
+
+6.
+
+# Imagine slim — mult mai mică decât python:3.12 full (~120MB vs ~1GB)
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY . .
+RUN pip install --no-cache-dir -r requirements.txt
+
+RUN useradd --create-home appuser && chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 8000
+CMD ["python", "app.py"]
+
+
+7.
+
+FROM python:3.12-slim AS builder
+
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY --from=builder /opt/venv /opt/venv
+COPY . .
+
+CMD ["python", "main.py"]
+
+8. It's e mechanisam that build on top of what is already built, when you execute a build command
+the docker engine is checking which parts are modifed and rebuilds what is needed, from the
+last layer modified to the latest one.
+
+9.
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+
+  10. You can run multiple containers from a single yaml and also build a small infra for them.
+
+  11. A & B 
+
+  12.
+
+  services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+
+
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+    restart: unless-stopped
+
+volumes:
+  pgdata:

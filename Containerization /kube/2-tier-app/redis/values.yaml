@@ -1,0 +1,30 @@
+architecture: standalone
+
+auth:
+  enabled: false
+
+master:
+  service:
+    type: ClusterIP
+    ports:
+      redis: 6379
+  persistence:
+    enabled: false
+
+replica:
+  replicaCount: 0
+
+fullnameOverride: backend-redis
+
+image:
+  registry: docker.io
+  repository: bitnamilegacy/redis
+  tag: 7.4.0-debian-12-r4
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi

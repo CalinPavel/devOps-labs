@@ -1,0 +1,5 @@
+1. A pod is the smallet unit in kube, is the host for multiple containers and kube resources.
+   A kubelet is an agent that runs liveness/readiness probes, restarts, and deployemnt.
+   etcd - kube database
+   kube-scheduler - decide on which node is the deployment created
+   kube api server - receives all the kubectl commands;
