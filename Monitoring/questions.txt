@@ -1,0 +1,21 @@
+Section 1: Conceptual Understanding (20 pts)
+1. Explain the key differences between proactive and reactive monitoring. (5 pts)
+  - proactive you find the issue before
+  - reactive you find the issue after it arises
+2. What are MTTD and MTTR? Why are they important? (5 pts)
+  MTTD - Mean time to detect, the time that is taken by team do discover the issue
+  MTTR - Mean time to recover, the tine that is taken by the team to solve the issue
+3. Describe a typical incident lifecycle and the role of DevOps in each stage. (5 pts)
+   Detect, Find the issue, Escalete/Comunicate, Solve the issue, Check, Documentation
+4. List three external monitoring platforms and their advantages. (5 pts)
+   Data dog, New relic, Grafana Cloud
+Section 2: Monitoring Tools Exploration (20 pts)
+5. What is Prometheus used for in monitoring? (5 pts)
+Open-source monitoring system built around time-series metrics. Works on a pull-based model — periodically scrapes /metrics endpoints exposed by apps/exporters, stores data in its own time-series database, and lets you query it with PromQL. Includes built-in alerting via Alertmanager. De facto standard for monitoring in Kubernetes environments.
+6. Describe how Grafana complements Prometheus. (5 pts)
+Prometheus is strong at collection, storage, and querying, but its own UI is minimal. Grafana connects to it as a data source and adds rich visual dashboards, correlation with other data sources (e.g. logs via Loki) in the same view, and centralized visual alerting. In short: Prometheus = data engine, Grafana = visualization/exploration layer.
+7. What data does Node Exporter collect? Name three example metrics. (5 pts)
+   It's checking the vms, cpu, ram, gpu.
+8. What is PagerDuty and how does it integrate with monitoring tools? (5 pts)
+  Incicdent management, collect metrics
+
